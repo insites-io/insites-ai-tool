@@ -1,0 +1,9 @@
+{
+  "platformos-liquid": {
+    "command": "insites-cli-lsp",
+    "extensionToLanguage": {
+      ".liquid": "liquid",
+      ".graphql": "graphql"
+    }
+  }
+}

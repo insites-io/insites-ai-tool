@@ -1,0 +1,8 @@
+.DS_Store
+*~
+.apply-output/
+.improve-output/
+.opencode/
+scripts/
+!plugins/claude/insites-tools-plugin/insites-tools/scripts/
+docs/

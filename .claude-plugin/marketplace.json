@@ -1,0 +1,13 @@
+{
+  "name": "insites-ai-tools",
+  "owner": {
+    "name": "Insites"
+  },
+  "plugins": [
+    {
+      "name": "insites-tools",
+      "source": "./plugins/claude/insites-tools-plugin/insites-tools",
+      "description": "Insites tools for Claude Code — auto-diagnostics after every Liquid/GraphQL edit, hover, completions, definitions, references, and dead-code detection via agent-callable tools."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "insites-cli": {
+      "command": "insites-cli-mcp"
+    },
+    "insites-tools": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/lsp-mcp-server.js"]
+    }
+  }
+}

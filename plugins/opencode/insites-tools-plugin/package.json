@@ -1,0 +1,19 @@
+{
+  "name": "opencode-insites-tools",
+  "version": "1.0.0",
+  "description": "OpenCode plugin that integrates the Insites Language Server (insites-cli lsp) for Liquid and GraphQL agent sessions",
+  "type": "module",
+  "main": "plugin.js",
+  "license": "MIT",
+  "keywords": ["opencode", "opencode-plugin", "insites", "liquid", "graphql", "lsp"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/insites-io/insites-ai-tool"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.0.0"
+  }
+}
