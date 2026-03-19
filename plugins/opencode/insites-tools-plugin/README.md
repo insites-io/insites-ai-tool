@@ -4,7 +4,11 @@ OpenCode plugin that integrates the Insites Language Server into agent sessions.
 
 ## Prerequisites
 
-> **Note:** This plugin requires `insites-cli` v6.0.0 or later, which is currently under development. The features below describe intended behavior for when v6 is released. Current stable version is v5.9.x.
+Requires `insites-cli` v5.9.1 or later:
+
+```sh
+npm install -g @insites/insites-cli
+```
 
 ## Installation
 
