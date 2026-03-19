@@ -1015,11 +1015,11 @@ Multi-level collapsible navigation menu.
     "children": [
       {
         "label": "Documentation",
-        "url": "https://documentation.platformos.com/",
+        "url": "https://docs.insites.io/",
         "children": [
           {
             "label": "Get Started Guide",
-            "url": "https://documentation.platformos.com/get-started"
+            "url": "https://docs.insites.io/get-started"
           }
         ]
       },
@@ -1038,7 +1038,7 @@ Multi-level collapsible navigation menu.
 ```liquid
 {% render 'modules/common-styling/navigation/collapsible',
   items: navigation,
-  active: 'https://documentation.platformos.com/get-started'
+  active: 'https://docs.insites.io/get-started'
 %}
 ```
 

@@ -971,6 +971,5 @@ function contract = 'modules/tests/helpers/register_error',
 
 ## References
 
-- [Tests Module Repository](https://github.com/Platform-OS/pos-module-tests)
-- [Insites Documentation](https://documentation.platformos.com/)
-- [insites-cli Documentation](https://documentation.platformos.com/developer-guide/insites-cli/insites-cli)
+- [Insites Documentation](https://docs.insites.io/)
+- [insites-cli Documentation](https://docs.insites.io/developer-guide/insites-cli/insites-cli)

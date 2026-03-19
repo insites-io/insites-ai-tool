@@ -928,7 +928,6 @@ This support file contains:
 
 ## References
 
-- [Common Styling Module](https://github.com/Platform-OS/pos-module-common-styling)
-- [Using Common Styling Tutorial](https://documentation.platformos.com/get-started/contact-us-tutorial/using-common-styling)
-- [Insites Documentation](https://documentation.platformos.com/)
+- [Using Common Styling Tutorial](https://docs.insites.io/get-started/contact-us-tutorial/using-common-styling)
+- [Insites Documentation](https://docs.insites.io/)
 - [Style Guide (on your instance)](https://YOUR-INSTANCE/style-guide)
