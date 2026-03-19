@@ -61,7 +61,7 @@ curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/i
 Global installation:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/install-examples.sh | bash -s -- --claude --globa
+curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/install-examples.sh | bash -s -- --claude --global
 ```
 
 ## Usage
