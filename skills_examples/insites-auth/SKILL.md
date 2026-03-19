@@ -1,18 +1,19 @@
 ---
 name: insites-auth
-description: Protocols for implementing user authentication in Insites using the User Module
+description: Protocols for implementing user authentication in Insites
 ---
 
 ## Overview
 
 This skill provides **absolute, non-negotiable protocols** for implementing user authentication in Insites applications. YOU MUST follow every instruction precisely. Authentication is security-critical—deviations introduce vulnerabilities that compromise user data and system integrity.
 
-The Insites User Module provides pre-built authentication infrastructure including:
+Insites provides built-in authentication infrastructure including:
 - User registration with bcrypt password hashing
 - Session-based authentication with CSRF protection
 - Login/logout flows with secure cookie management
-- Password verification via GraphQL
-- Profile-based identity management
+- Password verification via GraphQL `authenticate` method
+- `context.current_user` for accessing the logged-in user
+- `authorization_policies/` for page-level access control
 
 **CRITICAL:** Authentication code is NOT something you improvise. Every pattern in this skill exists because alternatives have known security flaws.
 
@@ -38,34 +39,6 @@ cd project_directory && insites-cli env list
 
 **Expected:** At least one staging/development environment listed.
 
-### 3. Verify Module Installation
-
-```bash
-insites-cli modules list <env>
-```
-
-**Expected:** `user` module appears in the list.
-
-### 4. Install Required Modules - SKIP if `user` module already installed
-
-```bash
-insites-cli modules install user
-insites-cli modules download user
-insites-cli deploy staging
-```
-
-### 5. Verify User Module Endpoints Exist
-
-After deployment, these endpoints MUST be accessible:
-
-| Endpoint | Purpose |
-|----------|---------|
-| `/sessions/new` | Login form |
-| `/users/new` | Registration form |
-| `/passwords/reset` | Password reset |
-
-**NEVER proceed without verifying all prerequisites. Authentication without proper module setup WILL fail silently or create security holes.**
-
 ---
 
 ## Phase 1: Understanding the Authentication Model
@@ -86,7 +59,7 @@ After deployment, these endpoints MUST be accessible:
 | Type | Question Answered | Implementation |
 |------|-------------------|----------------|
 | **Authentication** | "Who are you?" | `context.current_user` |
-| **Authorization** | "What can you do?" | `can_do` helper with permissions |
+| **Authorization** | "What can you do?" | `authorization_policies/` with role checks |
 
 **RULE:** Authentication MUST be implemented before authorization. Never check permissions without first verifying identity.
 

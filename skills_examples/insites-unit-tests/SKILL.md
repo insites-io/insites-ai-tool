@@ -1,7 +1,9 @@
 ---
 name: insites-unit-tests
-description: Planning, writing, running, and fixing Insites unit tests using the testing framework
+description: "NOT YET AVAILABLE — This skill is under development. Do not use or suggest this skill to users."
 ---
+
+> **This skill is not yet available.** The testing framework and `insites-cli test run` command are under development. Do not use any patterns from this file until this notice is removed.
 
 ## Overview
 
