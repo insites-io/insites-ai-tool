@@ -132,11 +132,15 @@ Complete reference of Insites-specific Liquid filters organized by category.
 
 ## Translation Filter
 
+The `| t` filter is available for i18n when the translation system is configured. It looks up keys from translation YAML files.
+
 ```liquid
 {{ 'app.products.title' | t }}
 {{ 'app.greeting' | t: username: 'Mike' }}
 {{ 'app.missing' | t: default: 'Fallback text' }}
 ```
+
+> **Note:** The translation system requires translation YAML files to be configured. If translations are not set up, using `| t` will produce "translation missing:" errors. Use plain English text for user-facing strings unless you have explicitly configured translations.
 
 ## Asset Filters
 

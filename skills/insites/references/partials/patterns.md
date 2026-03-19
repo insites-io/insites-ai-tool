@@ -11,7 +11,7 @@ Presentational partials receive all data as parameters and produce HTML.
   {% if show_price %}
     <p class="pos-card__price">{{ product.price | pricify }}</p>
   {% endif %}
-  <a href="/products/{{ product.id }}" class="pos-button">{{ 'app.products.view' | t }}</a>
+  <a href="/products/{{ product.id }}" class="pos-button">View</a>
 </div>
 ```
 
@@ -77,14 +77,14 @@ See [Commands](../commands/README.md) for the full build/check/execute pattern.
   <input type="hidden" name="authenticity_token" value="{{ context.authenticity_token }}">
 
   <div class="pos-form-group {% if product.errors.title %}pos-form-group--error{% endif %}">
-    <label for="title">{{ 'app.products.title' | t }}</label>
+    <label for="title">Title</label>
     <input type="text" id="title" name="product[title]" value="{{ product.title }}">
     {% if product.errors.title %}
       <span class="pos-form-error">{{ product.errors.title | join: ', ' }}</span>
     {% endif %}
   </div>
 
-  <button type="submit" class="pos-button pos-button--primary">{{ 'app.save' | t }}</button>
+  <button type="submit" class="pos-button pos-button--primary">Save</button>
 </form>
 ```
 
@@ -266,7 +266,7 @@ authorization_policies:
 ## Best Practices
 
 1. **Never call GraphQL from partials** — receive data from pages as parameters
-2. **Never hardcode text** — use `{{ 'app.key' | t }}` for all user-facing strings
+2. **Use plain English text for user-facing strings**
 3. **No underscore prefix** — `card.liquid` not `_card.liquid`
 4. **Keep partials focused** — one component or one function per file
 5. **Use function for data, render for HTML** — clear separation of concerns

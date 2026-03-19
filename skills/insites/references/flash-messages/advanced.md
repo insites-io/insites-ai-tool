@@ -17,7 +17,7 @@ Apply dynamic CSS classes based on flash type and user preferences:
   {% assign flash_class = 'flash-' | append: flash_type | append: '-' | append: theme %}
 
   <div class="flash {{ flash_class }}" role="alert">
-    {{ flash_type | t }}
+    {{ flash_type }}
   </div>
 {% endif %}
 ```
@@ -46,7 +46,7 @@ Render in layout:
 {% assign queue = session.flash_queue | parse_json %}
 {% for message in queue %}
   <div class="flash queued-{{ forloop.index }}">
-    {{ message | t }}
+    {{ message }}
   </div>
 {% endfor %}
 ```
@@ -98,8 +98,8 @@ Show different messages based on user attributes:
   {% assign flash_prefix = 'free' %}
 {% endif %}
 
-{% assign localized_key = flash.notice | prepend: flash_prefix | append: '_message' %}
-{{ localized_key | t }}
+{% assign message_key = flash.notice | prepend: flash_prefix | append: '_message' %}
+{{ message_key }}
 ```
 
 ## Flash with Deep Links
@@ -109,7 +109,7 @@ Combine flash messages with deep linking:
 ```liquid
 {% assign deep_link = '/items/' | append: item.id | append: '#details' %}
 {% parse_json flash_data %}
-  { "notice": "item.saved", "from": {{ deep_link | json }} }
+  { "notice": "Item saved", "from": {{ deep_link | json }} }
 {% endparse_json %}
 {% liquid
   assign flash_json = flash_data | json
@@ -159,7 +159,7 @@ Display detailed error information in flash:
 ```liquid
 {% assign error_list = form.errors | map: 'message' | join: ', ' %}
 {% parse_json flash_data %}
-  { "alert": "form.validation_error", "error_details": {{ error_list | json }}, "from": {{ context.location.pathname | json }} }
+  { "alert": "Validation error", "error_details": {{ error_list | json }}, "from": {{ context.location.pathname | json }} }
 {% endparse_json %}
 {% liquid
   assign flash_json = flash_data | json
@@ -171,7 +171,7 @@ Display detailed error information in flash:
 <!-- In layout -->
 {% if flash.alert %}
   <div class="alert">
-    <p>{{ flash.alert | t }}</p>
+    <p>{{ flash.alert }}</p>
     {% if sflash.error_details %}
       <ul>
         {% for error in sflash.error_details | split: ', ' %}
@@ -192,7 +192,7 @@ Enhance user experience with progressive flash enhancements:
 <noscript>
   <div class="flash-static">
     {%- assign flash = context.session.sflash | parse_json -%}
-    {{ flash.notice | t }}
+    {{ flash.notice }}
   </div>
 </noscript>
 
@@ -200,7 +200,7 @@ Enhance user experience with progressive flash enhancements:
 <script>
   {%- assign flash = context.session.sflash | parse_json -%}
   if ('{% if flash %}true{% else %}false{% endif %}' === 'true') {
-    initializeEnhancedFlash('{{ flash.notice | t | escape_javascript }}');
+    initializeEnhancedFlash('{{ flash.notice | escape_javascript }}');
   }
 </script>
 ```
@@ -215,7 +215,7 @@ Implement accessible flash messages:
      aria-live="polite"
      aria-atomic="true">
   {%- assign flash = context.session.sflash | parse_json -%}
-  {{ flash.notice | t }}
+  {{ flash.notice }}
 </div>
 
 <style>

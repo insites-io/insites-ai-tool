@@ -10,10 +10,10 @@ After successful form submission, redirect with confirmation:
 
 ```liquid
 {% parse_json success_flash %}
-  { "notice": "user.created_successfully", "from": {{ context.location.pathname | json }} }
+  { "notice": "User created successfully", "from": {{ context.location.pathname | json }} }
 {% endparse_json %}
 {% parse_json error_flash %}
-  { "alert": "form.validation_failed", "from": {{ context.location.pathname | json }} }
+  { "alert": "Validation failed. Please check the form.", "from": {{ context.location.pathname | json }} }
 {% endparse_json %}
 {% liquid
   function result = 'lib/commands/users/create', params: context.params
@@ -36,13 +36,13 @@ Show different messages for different outcomes:
 {% liquid
   if action == 'delete'
     if deletion_successful
-      assign flash = '{"notice": "item.deleted", "from": "/items"}' | parse_json
+      assign flash = '{"notice": "Item deleted", "from": "/items"}' | parse_json
       assign flash_json = flash | json
       session sflash = flash_json
       redirect_to '/items'
       break
     else
-      assign flash = '{"alert": "item.deletion_failed", "from": "/items"}' | parse_json
+      assign flash = '{"alert": "Item could not be deleted", "from": "/items"}' | parse_json
       assign flash_json = flash | json
       session sflash = flash_json
       redirect_to '/items'
@@ -60,13 +60,13 @@ Warn users during multi-step processes:
 {% liquid
   if current_step == 2
     if incomplete_required_fields.size > 0
-      assign flash = '{"warning": "form.step_2_incomplete_fields", "from": "/form/step-2"}' | parse_json
+      assign flash = '{"warning": "Some required fields are incomplete", "from": "/form/step-2"}' | parse_json
       assign flash_json = flash | json
       session sflash = flash_json
       redirect_to '/form/step-2'
       break
     else
-      assign flash = '{"notice": "form.step_2_complete", "from": "/form/step-3"}' | parse_json
+      assign flash = '{"notice": "Step 2 complete", "from": "/form/step-3"}' | parse_json
       assign flash_json = flash | json
       session sflash = flash_json
       redirect_to '/form/step-3'
@@ -76,9 +76,9 @@ Warn users during multi-step processes:
 %}
 ```
 
-## Displaying Flash with Localization
+## Displaying Flash Messages
 
-Render localized flash messages in layout:
+Render flash messages in layout:
 
 ```liquid
 {%- assign flash = context.session.sflash | parse_json -%}
@@ -87,28 +87,28 @@ Render localized flash messages in layout:
   {% if flash.notice %}
     <div class="alert alert-success">
       <i class="icon-check"></i>
-      {{ flash.notice | t }}
+      {{ flash.notice }}
     </div>
   {% endif %}
 
   {% if flash.alert %}
     <div class="alert alert-danger">
       <i class="icon-error"></i>
-      {{ flash.alert | t }}
+      {{ flash.alert }}
     </div>
   {% endif %}
 
   {% if flash.warning %}
     <div class="alert alert-warning">
       <i class="icon-warning"></i>
-      {{ flash.warning | t }}
+      {{ flash.warning }}
     </div>
   {% endif %}
 
   {% if flash.info %}
     <div class="alert alert-info">
       <i class="icon-info"></i>
-      {{ flash.info | t }}
+      {{ flash.info }}
     </div>
   {% endif %}
 {% endif %}
@@ -122,10 +122,10 @@ Trigger toast notifications from server actions:
 <script>
   {%- assign flash = context.session.sflash | parse_json -%}
   {% if flash.notice %}
-    new pos.modules.toast('success', '{{ flash.notice | t }}');
+    new pos.modules.toast('success', '{{ flash.notice }}');
   {% endif %}
   {% if flash.alert %}
-    new pos.modules.toast('error', '{{ flash.alert | t }}');
+    new pos.modules.toast('error', '{{ flash.alert }}');
   {% endif %}
 </script>
 ```
@@ -143,7 +143,7 @@ Keep flash visible until user manually closes:
       <span aria-hidden="true">&times;</span>
     </button>
     <div class="alert-content">
-      {{ flash.notice | t | default: flash.alert | t }}
+      {{ flash.notice | default: flash.alert }}
     </div>
   </div>
 
@@ -168,7 +168,7 @@ Show different messages based on user role:
   {% assign flash_key = flash.notice %}
 {% endif %}
 
-{{ flash_key | t }}
+{{ flash_key }}
 ```
 
 ## AJAX Request Flash Messages
@@ -196,7 +196,7 @@ Show notification with count:
 
 ```liquid
 {% liquid
-  assign flash = '{"notice": "items.bulk_imported", "from": "/dashboard"}' | parse_json
+  assign flash = '{"notice": "Items imported successfully", "from": "/dashboard"}' | parse_json
   assign flash_json = flash | json
   session sflash = flash_json
   redirect_to '/dashboard'
@@ -208,8 +208,8 @@ Use in layout:
 
 ```liquid
 {%- assign flash = context.session.sflash | parse_json -%}
-{% if flash.notice contains 'bulk_imported' %}
-  {{ flash.notice | t: count: imported_count }}
+{% if flash.notice %}
+  {{ flash.notice }}
 {% endif %}
 ```
 

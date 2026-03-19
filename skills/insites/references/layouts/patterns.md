@@ -98,11 +98,11 @@ Email layouts use inline-safe HTML with no external CSS dependencies.
 <body>
   <div class="container">
     <div class="header">
-      <h1>{{ 'emails.app_name' | t }}</h1>
+      <h1>My Application</h1>
     </div>
     {{ content_for_layout }}
     <div class="footer">
-      <p>{{ 'emails.footer_text' | t }}</p>
+      <p>You received this email because you have an account with us.</p>
     </div>
   </div>
 </body>
@@ -199,7 +199,7 @@ This outputs only the page body with no HTML shell.
 2. **One layout per use case** -- `application`, `admin`, `mailer` cover most apps
 3. **Always include flash handling** -- users expect feedback after form submissions
 4. **Use yield slots** -- allow pages to inject CSS/JS without modifying the layout
-5. **Use translations** -- never hardcode text in layouts (use `{{ 'key' | t }}`)
+5. **Use plain English text** -- write clear, descriptive user-facing strings
 6. **Include common-styling/init** -- required for the design system to work
 7. **Set pos-app class** -- `<html class="pos-app">` enables common-styling
 8. **Delegate to partials** -- navigation, footer, and other components should be partials

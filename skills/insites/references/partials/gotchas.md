@@ -45,9 +45,9 @@
 
 ### "Hardcoded text flagged by linter"
 
-**Cause:** User-facing strings must use translations.
+**Cause:** User-facing strings should be clear and descriptive.
 
-**Solution:** Replace `<h1>Products</h1>` with `<h1>{{ 'app.products.title' | t }}</h1>`.
+**Solution:** Use plain, descriptive English text for user-facing strings. For example: `<h1>Products</h1>`.
 
 ## Limits
 
@@ -76,7 +76,7 @@ Partial problem?
 │   └── Check partial is called via function (not render)
 └── Linter errors?
     ├── No underscore prefix in filenames
-    ├── No hardcoded text (use translations)
+    ├── Use clear, descriptive text for user-facing strings
     └── No GraphQL calls in partials
 ```
 

@@ -12,7 +12,7 @@ Set flash message and redirect:
 
 ```liquid
 {% parse_json flash %}
-  { "notice": "user.profile_updated", "from": {{ context.location.pathname | json }} }
+  { "notice": "Profile updated", "from": {{ context.location.pathname | json }} }
 {% endparse_json %}
 {% liquid
   assign flash_json = flash | json
@@ -24,7 +24,7 @@ Set flash message and redirect:
 
 The `notice` value accepts:
 
-- Localization key: `'user.profile_updated'` -> resolves via `| t` filter in templates
+- Plain text: `'Profile updated'`
 - Dynamic text: `'Welcome ' | append: user.name`
 
 ### Flash Message Properties
@@ -43,7 +43,7 @@ The flash JSON object supports these properties:
 
 ```liquid
 {% parse_json flash %}
-  { "notice": "changes_saved", "from": {{ context.location.pathname | json }} }
+  { "notice": "Changes saved", "from": {{ context.location.pathname | json }} }
 {% endparse_json %}
 {% liquid
   assign flash_json = flash | json
@@ -77,10 +77,10 @@ The flash JSON object supports these properties:
 {% liquid
   assign flash = context.session.sflash | parse_json
   if flash.notice
-    assign notice_text = flash.notice | t
+    assign notice_text = flash.notice
   endif
   if flash.alert
-    assign error_text = flash.alert | t
+    assign error_text = flash.alert
   endif
 %}
 ```
@@ -134,7 +134,7 @@ Flash messages follow this structure in session:
 
 ```json
 {
-  "notice": "i18n.key.or.text",
+  "notice": "Your descriptive message here",
   "alert": null,
   "warning": null,
   "info": null,
@@ -148,7 +148,7 @@ Set multiple flash messages in redirect:
 
 ```liquid
 {% parse_json flash %}
-  { "notice": "partial_save", "warning": "some_fields_required", "from": {{ context.location.pathname | json }} }
+  { "notice": "Partially saved", "warning": "Some fields are required", "from": {{ context.location.pathname | json }} }
 {% endparse_json %}
 {% liquid
   assign flash_json = flash | json
@@ -168,7 +168,7 @@ Apply Liquid filters to flash messages:
 {%- assign flash = context.session.sflash | parse_json -%}
 {% if flash.notice %}
   <div class="flash">
-    {{ flash.notice | t | upcase }}
+    {{ flash.notice | upcase }}
   </div>
 {% endif %}
 ```
@@ -179,7 +179,7 @@ When using `redirect_to`, HTTP headers are set:
 
 ```
 Location: /dashboard
-Set-Cookie: sflash={"notice":"i18n.key"}; ...
+Set-Cookie: sflash={"notice":"Profile updated"}; ...
 ```
 
 The cookie automatically manages flash lifecycle.

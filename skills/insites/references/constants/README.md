@@ -22,7 +22,7 @@ Think of constants as environment variables: set once per environment, available
 - **Module configuration** -- providing credentials that installed modules need to operate
 
 You do NOT need constants when:
-- The value is the same in all environments (use translations or hardcode in config)
+- The value is the same in all environments (hardcode in config)
 - The value is user-specific (use session or database records)
 - The value is page-specific (use front matter metadata)
 

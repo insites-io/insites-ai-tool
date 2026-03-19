@@ -54,7 +54,7 @@ Flash data is stored in session with the following structure:
 
 ```json
 {
-  "notice": "user.profile_updated",
+  "notice": "Profile updated",
   "alert": null,
   "warning": null,
   "info": null,
@@ -62,7 +62,7 @@ Flash data is stored in session with the following structure:
 }
 ```
 
-Localization keys are resolved in views for multi-language support.
+Flash values are plain English strings displayed directly to the user.
 
 ## Layout Pattern
 

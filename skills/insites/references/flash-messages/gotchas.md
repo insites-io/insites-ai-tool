@@ -28,7 +28,7 @@ Verify flash-enabled layout is used on redirect target page:
 ```liquid
 {%- assign flash = context.session.sflash | parse_json -%}
 {% if flash %}
-  <div class="alert">{{ flash.notice | t }}</div>
+  <div class="alert">{{ flash.notice }}</div>
 {% endif %}
 ```
 
@@ -64,37 +64,24 @@ Manually clear if needed:
 {% session sflash = null %}
 ```
 
-## Localization Key Not Resolving
+## Flash Message Text Issues
 
-### Missing i18n Key
+### Use Descriptive Flash Messages
 
-Flash expects localization keys to exist in translation files:
-
-```yaml
-# config/i18n/en.yml
-en:
-  user:
-    profile_updated: "Your profile has been updated"
-```
-
-Without this key, `{{ flash_key | t }}` renders empty or the key itself.
-
-### Wrong Key Format
-
-Localization keys use dot notation:
+Flash messages should contain plain English text that is displayed directly to the user:
 
 ```liquid
-{% comment %} Correct {% endcomment %}
+{% comment %} Correct — use descriptive flash messages {% endcomment %}
 {% liquid
-  assign flash = '{"notice": "user.profile_updated", "from": "/dashboard"}' | parse_json
+  assign flash = '{"notice": "Profile updated", "from": "/dashboard"}' | parse_json
   assign flash_json = flash | json
   session sflash = flash_json
   redirect_to '/dashboard'
   break
 %}
 
-{% comment %} Incorrect - hyphens not valid in i18n keys {% endcomment %}
-{% comment %} "notice": "user-profile-updated" {% endcomment %}
+{% comment %} Incorrect — translation keys produce "translation missing:" errors {% endcomment %}
+{% comment %} "notice": "user.profile_updated" {% endcomment %}
 ```
 
 ## Flash with Redirect Loop
@@ -143,7 +130,7 @@ Different types work together in the same flash object:
 
 ```liquid
 {% liquid
-  assign flash = '{"notice": "saved", "warning": "some_fields_empty", "from": "/form"}' | parse_json
+  assign flash = '{"notice": "Saved", "warning": "Some fields are empty", "from": "/form"}' | parse_json
   assign flash_json = flash | json
   session sflash = flash_json
   redirect_to '/form'
@@ -160,9 +147,9 @@ Both `notice` and `warning` will display.
 Never put user-provided content directly in flash messages. Always use localization keys:
 
 ```liquid
-{% comment %} SAFE: Use localization keys for user-facing messages {% endcomment %}
+{% comment %} SAFE: Use descriptive flash messages {% endcomment %}
 {% liquid
-  assign flash = '{"notice": "item.created", "from": "/items"}' | parse_json
+  assign flash = '{"notice": "Item created", "from": "/items"}' | parse_json
   assign flash_json = flash | json
   session sflash = flash_json
   redirect_to '/items'
@@ -170,15 +157,15 @@ Never put user-provided content directly in flash messages. Always use localizat
 %}
 ```
 
-Always use localization keys for user-facing messages.
+Always use descriptive flash messages for user-facing text.
 
 ### Variable Interpolation
 
-Variables don't interpolate in flash keys. Use `| t` filter with parameters when displaying:
+Variables don't interpolate inside JSON strings. Build the message before storing it:
 
 ```liquid
-{% comment %} RIGHT: Use i18n with parameters when rendering {% endcomment %}
-{{ flash.notice | t: name: item_name }}
+{% comment %} RIGHT: Build the message with the variable first {% endcomment %}
+{% assign notice_msg = 'Created: ' | append: item_name %}
 ```
 
 ## JavaScript Toast Issues

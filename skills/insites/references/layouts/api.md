@@ -169,7 +169,7 @@ HTTP request headers:
 |--------------|------------------------------------|--------------------------------------------|
 | `asset_url`  | Returns URL for an asset file      | `{{ 'app.css' \| asset_url }}`             |
 | `default`    | Fallback for nil/empty values      | `{{ title \| default: "My App" }}`         |
-| `t`          | Translation lookup                 | `{{ 'nav.home' \| t }}`                    |
+| `t`          | Translation lookup (available for i18n) | `{{ 'nav.home' \| t }}`                    |
 | `json`       | Converts value to JSON             | `{{ data \| json }}`                       |
 | `escape`     | HTML-escapes a string              | `{{ user_input \| escape }}`               |
 

@@ -47,7 +47,7 @@ Must pass with 0 errors before deployment.
 - [ ] Pages have ONE HTTP method each
 - [ ] NO raw HTML/JS/CSS in pages (pages = controllers)
 - [ ] NO GraphQL calls from partials (pages only)
-- [ ] NO hardcoded user-facing text in partials (use translations when available)
+- [ ] Hardcode user-facing text directly in English (translation system is not yet configured)
 - [ ] NO hardcoded credentials (use `context.constants`)
 - [ ] `insites-cli audit` passes
 
@@ -443,7 +443,7 @@ project-root/
 - Deploying without running `insites-cli audit`
 - Syncing files outside `./app/`
 - Using Tailwind, Bootstrap, or custom CSS frameworks (use common-styling)
-- Hardcoding user-facing text (use translations)
+- ~~Hardcoding user-facing text (use translations)~~ *(translations not yet configured — use plain English text for now)*
 - Hardcoding API keys or secrets (use `context.constants`)
 
 ## Documentation Links

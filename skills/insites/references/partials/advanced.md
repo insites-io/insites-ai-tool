@@ -54,8 +54,7 @@ Use function partials to return configuration hashes:
 ```liquid
 {% function nav_items = 'lib/config/navigation' %}
 {% for item in nav_items %}
-  {% assign label = item.label | t %}
-  {% render 'shared/nav_link', label: label, url: item.url %}
+  {% render 'shared/nav_link', label: item.label, url: item.url %}
 {% endfor %}
 ```
 

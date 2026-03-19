@@ -72,6 +72,6 @@ app/views/partials/
 
 - Partials contain ALL HTML/JS/CSS presentation
 - NO GraphQL calls in partials (data comes from pages via parameters)
-- NO hardcoded user-facing text (use `{{ 'app.key' | t }}`)
+- Use plain English text for user-facing strings
 - Use `render` for display-only partials
 - Use `function` for partials that return data

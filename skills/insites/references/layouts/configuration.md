@@ -173,7 +173,7 @@ Access page front matter metadata via `context.page.metadata`:
 <body>
   {{ content_for_layout }}
   <footer>
-    <p>{{ 'emails.footer' | t }}</p>
+    <p>Thank you for using our service.</p>
   </footer>
 </body>
 </html>

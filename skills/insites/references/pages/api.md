@@ -189,7 +189,7 @@ Variables exported from partials via `{% export %}`:
 |---------------------|--------------------------------|--------------------------------------|
 | `json`              | Converts to JSON string        | `{{ hash \| json }}`                 |
 | `parse_json`        | Parses JSON string to object   | `{{ string \| parse_json }}`         |
-| `t`                 | Translation lookup             | `{{ 'app.title' \| t }}`            |
+| `t`                 | Translation lookup (available for i18n) | `{{ 'app.title' \| t }}`            |
 | `asset_url`         | URL for asset file             | `{{ 'app.css' \| asset_url }}`      |
 | `default`           | Fallback for nil/empty         | `{{ var \| default: "none" }}`       |
 | `url_encode`        | URL-encodes a string           | `{{ query \| url_encode }}`          |

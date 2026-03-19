@@ -233,7 +233,7 @@ Render errors in a form partial:
   <div class="pos-alert pos-alert--danger">
     <ul>
       {% for error in product.errors %}
-        <li>{{ error[0] }}: {{ error[1] | join: ', ' | t }}</li>
+        <li>{{ error[0] }}: {{ error[1] | join: ', ' }}</li>
       {% endfor %}
     </ul>
   </div>
@@ -243,7 +243,7 @@ Render errors in a form partial:
   {% render 'authenticity_token' %}
   <input type="text" name="product[title]" value="{{ product.title }}">
   {% if product.errors.title %}
-    <span class="pos-form-error">{{ product.errors.title | first | t }}</span>
+    <span class="pos-form-error">{{ product.errors.title | first }}</span>
   {% endif %}
   <button type="submit">Save</button>
 </form>
