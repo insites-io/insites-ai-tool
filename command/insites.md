@@ -10,17 +10,25 @@ Load the Insites platform skill and help with any Insites development task.
 
 If $ARGUMENTS contains `--update-skill`:
 
-1. Determine install location by checking which exists:
-   - Local: `.opencode/skills/insites/`
-   - Global: `~/.config/opencode/skills/insites/`
+1. Determine install location by checking which path exists:
+   - Claude Code global: `~/.claude/skills/insites/`
+   - Claude Code local: `.claude/skills/insites/`
+   - OpenCode global: `~/.config/opencode/skills/insites/`
+   - OpenCode local: `.opencode/skills/insites/`
 
-2. Run the appropriate install command:
+2. Run the appropriate install command based on which path was found:
    ```bash
-   # For local installation
-   curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/install.sh | bash
+   # For Claude Code global
+   curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/claude-install.sh | bash -s -- --global
 
-   # For global installation
+   # For Claude Code local
+   curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/claude-install.sh | bash
+
+   # For OpenCode global
    curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/install.sh | bash -s -- --global
+
+   # For OpenCode local
+   curl -fsSL https://raw.githubusercontent.com/insites-io/insites-ai-tool/master/install.sh | bash
    ```
 
 3. Output success message and stop (do not continue to other steps).
