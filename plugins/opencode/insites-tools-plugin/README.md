@@ -1,14 +1,10 @@
 # insites-tools for OpenCode
 
-OpenCode plugin that integrates the [Insites Language Server](https://github.com/Platform-OS/platformos-language-server) into agent sessions. Provides real-time diagnostics, hover documentation, completions, go-to-definition, and theme graph analysis for `.liquid` and `.graphql` files.
+OpenCode plugin that integrates the Insites Language Server into agent sessions. Provides real-time diagnostics, hover documentation, completions, go-to-definition, and theme graph analysis for `.liquid` and `.graphql` files.
 
 ## Prerequisites
 
-Requires `insites-cli` v6.0.0-beta.10 or later, which includes `insites-cli-lsp` and `insites-cli-mcp`:
-
-```sh
-npm install -g /insites-cli@6.0.0-beta.10
-```
+> **Note:** This plugin requires `insites-cli` v6.0.0 or later, which is currently under development. The features below describe intended behavior for when v6 is released. Current stable version is v5.9.x.
 
 ## Installation
 
@@ -25,13 +21,13 @@ Restart OpenCode after installation.
 
 ## What it does
 
-**Auto-diagnostics** — after every Read, Write, or Edit on a `.liquid` or `.graphql` file, `insites-cli check` output is automatically appended to the tool result. The agent is instructed to fix all errors before proceeding.
+**Auto-diagnostics** — after every Read, Write, or Edit on a `.liquid` or `.graphql` file, `insites-cli audit` output is automatically appended to the tool result. The agent is instructed to fix all errors before proceeding.
 
 **Available tools**
 
 | Tool | Description |
 |------|-------------|
-| `insites_diagnostics` | Run `insites-cli check` on a file and return all errors, warnings, and info |
+| `insites_diagnostics` | Run `insites-cli audit` on a file and return all errors, warnings, and info |
 | `insites_hover` | Get LSP hover documentation for a Liquid tag, filter, or object |
 | `insites_completions` | List valid completions inside a Liquid expression |
 | `insites_definition` | Jump to the definition of a translation key |

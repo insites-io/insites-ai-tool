@@ -2,37 +2,29 @@
 
 Claude Code plugin providing Insites Language Server integration for `.liquid` and `.graphql` files.
 
-## Installation
-
-**Step 1** — Add the marketplace registry (one-time, per machine):
-
-```sh
-claude plugin marketplace add insites-io/insites-ai-tool
-```
-
-**Step 2** — Install the plugin:
-
-```sh
-claude plugin install insites-tools@insites-ai-tool
-```
-
 ## Prerequisites
 
-`insites-cli` v6.0.0-beta.10 or later (includes `insites-cli-lsp` and `insites-cli-mcp`):
+> **Note:** This plugin requires `insites-cli` v6.0.0 or later, which is currently under development. The features below describe intended behavior for when v6 is released. Current stable version is v5.9.x.
+
+## Installation
+
+> **Note:** Plugin marketplace installation is not yet available. This section will be updated when `insites-cli` v6.0.0 is released.
 
 ```sh
-npm install -g /insites-cli@6.0.0-beta.10
+# Future installation (requires insites-cli v6+):
+# claude plugin marketplace add insites-io/insites-ai-tool
+# claude plugin install insites-tools@insites-ai-tool
 ```
 
 ## What it does
 
-**Auto-diagnostics** — after every Read, Write, or Edit on a `.liquid` or `.graphql` file, `insites-cli check` output is automatically appended to the tool result. The agent is instructed to fix all errors before proceeding.
+**Auto-diagnostics** — after every Read, Write, or Edit on a `.liquid` or `.graphql` file, `insites-cli audit` output is automatically appended to the tool result. The agent is instructed to fix all errors before proceeding.
 
 **Available tools**
 
 | Tool | Description |
 |------|-------------|
-| `insites_diagnostics` | Run `insites-cli check` on a file and return all errors, warnings, and info |
+| `insites_diagnostics` | Run `insites-cli audit` on a file and return all errors, warnings, and info |
 | `insites_hover` | Get LSP hover documentation for a Liquid tag, filter, or object |
 | `insites_completions` | List valid completions inside a Liquid expression |
 | `insites_definition` | Jump to the definition of a translation key |
