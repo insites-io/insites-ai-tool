@@ -18,7 +18,7 @@ Without the filter, browsers may cache old versions and users won't see updates.
 
 ### Different CDN in Staging vs Production
 
-The `asset_url` filter automatically uses the environment's CDN endpoint from `.pos`:
+The `asset_url` filter automatically uses the environment's CDN endpoint from `.insites`:
 
 ```liquid
 <!-- Automatically picks staging or production CDN -->
@@ -82,6 +82,8 @@ Check deployment logs for upload performance issues.
 ```
 
 Always use relative paths from the `app/assets/` root.
+
+> **Module path:** The same rules apply for module assets. Files in `modules/<module_name>/public/assets/images/logo.png` are referenced as `{{ 'images/logo.png' | asset_url }}` — do not include the module directory prefix in the filter argument.
 
 ## CORS with Cross-Domain Assets
 

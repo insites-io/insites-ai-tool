@@ -40,7 +40,12 @@ Page loads -> Tags execute sequentially -> graphql fetches data
 
 ```liquid
 {% liquid
-  function profile = 'modules/user/queries/user/current'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
   graphql products = 'products/search', limit: 20
   if products.results == blank
     response_status 404

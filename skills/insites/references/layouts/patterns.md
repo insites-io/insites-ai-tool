@@ -23,11 +23,11 @@ The most common layout pattern includes navigation, content, flash messages, and
   </main>
   {% render 'shared/footer' %}
   {% liquid
-    function flash = 'modules/core/commands/session/get', key: 'sflash'
+    assign flash = context.session.sflash | parse_json
     if context.location.pathname != flash.from or flash.force_clear
-      function _ = 'modules/core/commands/session/clear', key: 'sflash'
+      session sflash = null
     endif
-    render 'modules/common-styling/toasts', params: flash
+    render 'shared/toasts', params: flash
   %}
   {% yield 'footer_scripts' %}
 </body>
@@ -59,11 +59,11 @@ A separate layout for admin sections with different navigation and restricted ac
     </div>
   </div>
   {% liquid
-    function flash = 'modules/core/commands/session/get', key: 'sflash'
+    assign flash = context.session.sflash | parse_json
     if context.location.pathname != flash.from or flash.force_clear
-      function _ = 'modules/core/commands/session/clear', key: 'sflash'
+      session sflash = null
     endif
-    render 'modules/common-styling/toasts', params: flash
+    render 'shared/toasts', params: flash
   %}
   {% yield 'footer_scripts' %}
 </body>

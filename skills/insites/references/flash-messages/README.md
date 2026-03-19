@@ -8,11 +8,11 @@ Add before `</body>` in your layout:
 
 ```liquid
 {% liquid
-  function flash = 'modules/core/commands/session/get', key: 'sflash'
+  assign flash = context.session.sflash | parse_json
   if context.location.pathname != flash.from or flash.force_clear
-    function _ = 'modules/core/commands/session/clear', key: 'sflash'
+    session sflash = null
   endif
-  render 'modules/common-styling/toasts', params: flash
+  render 'shared/toasts', params: flash
 %}
 ```
 
@@ -20,14 +20,31 @@ Add before `</body>` in your layout:
 
 ### Set flash and redirect
 ```liquid
-{% include 'modules/core/helpers/redirect_to', url: '/products', notice: 'app.products.created' %}
-{% include 'modules/core/helpers/redirect_to', url: '/products', alert: 'app.products.error' %}
+{% liquid
+  parse_json flash
+    { "notice": "app.products.created", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/products'
+  break
+%}
 ```
 
-### Set flash without redirect
+### Set flash with alert and redirect
 ```liquid
-{% include 'modules/core/helpers/flash/publish', notice: 'app.order.confirmed' %}
-{% include 'modules/core/helpers/flash/publish', alert: 'app.order.failed' %}
+{% liquid
+  parse_json flash
+    { "alert": "app.products.error", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/products'
+  break
+%}
+```
+
+### Simple redirect (no flash)
+```liquid
+{% redirect_to '/products' %}
 ```
 
 ## Client-Side Toasts (JavaScript)

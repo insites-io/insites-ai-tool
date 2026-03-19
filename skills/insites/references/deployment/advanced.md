@@ -162,7 +162,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: npm install -g /insites-cli
-      - run: platformos-check
+      - run: insites-cli audit
 
   test:
     needs: validate

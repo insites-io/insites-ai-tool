@@ -9,22 +9,21 @@ Common patterns for implementing flash messages in Insites applications.
 After successful form submission, redirect with confirmation:
 
 ```liquid
-{% if form.valid? %}
-  {% graphql result = 'create_user'
-    name: form.name,
-    email: form.email
-  %}
-
-  {% include 'modules/core/helpers/redirect_to',
-    url: '/users',
-    notice: 'user.created_successfully'
-  %}
-{% else %}
-  <!-- Show validation errors -->
-  {% include 'modules/core/helpers/flash/publish',
-    alert: 'form.validation_failed'
-  %}
-{% endif %}
+{% liquid
+  function result = 'lib/commands/users/create', params: context.params
+  if result.errors == blank
+    parse_json flash
+      { "notice": "user.created_successfully", "from": {{ context.location.pathname | json }} }
+    endparse_json
+    session sflash = flash
+    redirect_to '/users'
+    break
+  endif
+  parse_json flash
+    { "alert": "form.validation_failed", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+%}
 ```
 
 ## Conditional Alerts Based on Action
@@ -32,19 +31,25 @@ After successful form submission, redirect with confirmation:
 Show different messages for different outcomes:
 
 ```liquid
-{% if action == 'delete' %}
-  {% if deletion_successful %}
-    {% include 'modules/core/helpers/redirect_to',
-      url: '/items',
-      alert: 'item.deleted'
-    %}
-  {% else %}
-    {% include 'modules/core/helpers/redirect_to',
-      url: '/items',
-      alert: 'item.deletion_failed'
-    %}
-  {% endif %}
-{% endif %}
+{% liquid
+  if action == 'delete'
+    if deletion_successful
+      parse_json flash
+        { "notice": "item.deleted", "from": "/items" }
+      endparse_json
+      session sflash = flash
+      redirect_to '/items'
+      break
+    else
+      parse_json flash
+        { "alert": "item.deletion_failed", "from": "/items" }
+      endparse_json
+      session sflash = flash
+      redirect_to '/items'
+      break
+    endif
+  endif
+%}
 ```
 
 ## Multi-Step Form with Warnings
@@ -52,19 +57,25 @@ Show different messages for different outcomes:
 Warn users during multi-step processes:
 
 ```liquid
-{% if current_step == 2 %}
-  {% if incomplete_required_fields.size > 0 %}
-    {% include 'modules/core/helpers/redirect_to',
-      url: '/form/step-2',
-      warning: 'form.step_2_incomplete_fields'
-    %}
-  {% else %}
-    {% include 'modules/core/helpers/redirect_to',
-      url: '/form/step-3',
-      notice: 'form.step_2_complete'
-    %}
-  {% endif %}
-{% endif %}
+{% liquid
+  if current_step == 2
+    if incomplete_required_fields.size > 0
+      parse_json flash
+        { "warning": "form.step_2_incomplete_fields", "from": "/form/step-2" }
+      endparse_json
+      session sflash = flash
+      redirect_to '/form/step-2'
+      break
+    else
+      parse_json flash
+        { "notice": "form.step_2_complete", "from": "/form/step-3" }
+      endparse_json
+      session sflash = flash
+      redirect_to '/form/step-3'
+      break
+    endif
+  endif
+%}
 ```
 
 ## Displaying Flash with Localization
@@ -72,34 +83,34 @@ Warn users during multi-step processes:
 Render localized flash messages in layout:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 
-{% if sflash %}
-  {% if sflash.notice %}
+{% if flash %}
+  {% if flash.notice %}
     <div class="alert alert-success">
       <i class="icon-check"></i>
-      {{ sflash.notice | t }}
+      {{ flash.notice | t }}
     </div>
   {% endif %}
 
-  {% if sflash.alert %}
+  {% if flash.alert %}
     <div class="alert alert-danger">
       <i class="icon-error"></i>
-      {{ sflash.alert | t }}
+      {{ flash.alert | t }}
     </div>
   {% endif %}
 
-  {% if sflash.warning %}
+  {% if flash.warning %}
     <div class="alert alert-warning">
       <i class="icon-warning"></i>
-      {{ sflash.warning | t }}
+      {{ flash.warning | t }}
     </div>
   {% endif %}
 
-  {% if sflash.info %}
+  {% if flash.info %}
     <div class="alert alert-info">
       <i class="icon-info"></i>
-      {{ sflash.info | t }}
+      {{ flash.info | t }}
     </div>
   {% endif %}
 {% endif %}
@@ -111,12 +122,12 @@ Trigger toast notifications from server actions:
 
 ```liquid
 <script>
-  {% include 'modules/core/helpers/flash/get_flash' %}
-  {% if sflash.notice %}
-    new pos.modules.toast('success', '{{ sflash.notice | t }}');
+  {%- assign flash = context.session.sflash | parse_json -%}
+  {% if flash.notice %}
+    new pos.modules.toast('success', '{{ flash.notice | t }}');
   {% endif %}
-  {% if sflash.alert %}
-    new pos.modules.toast('error', '{{ sflash.alert | t }}');
+  {% if flash.alert %}
+    new pos.modules.toast('error', '{{ flash.alert | t }}');
   {% endif %}
 </script>
 ```
@@ -126,15 +137,15 @@ Trigger toast notifications from server actions:
 Keep flash visible until user manually closes:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 
-{% if sflash %}
+{% if flash %}
   <div class="alert" id="flash-message" role="alert">
     <button type="button" class="close" aria-label="Close">
       <span aria-hidden="true">&times;</span>
     </button>
     <div class="alert-content">
-      {{ sflash.notice | t | default: sflash.alert | t }}
+      {{ flash.notice | t | default: flash.alert | t }}
     </div>
   </div>
 
@@ -151,12 +162,12 @@ Keep flash visible until user manually closes:
 Show different messages based on user role:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 
-{% if context.user.role == 'admin' %}
-  {% assign flash_key = sflash.notice | append: '.admin' %}
+{% if context.current_user.role == 'admin' %}
+  {% assign flash_key = flash.notice | append: '.admin' %}
 {% else %}
-  {% assign flash_key = sflash.notice %}
+  {% assign flash_key = flash.notice %}
 {% endif %}
 
 {{ flash_key | t }}
@@ -186,18 +197,22 @@ fetch('/api/form-submit', {
 Show notification with count:
 
 ```liquid
-{% include 'modules/core/helpers/redirect_to',
-  url: '/dashboard',
-  notice: 'items.bulk_imported',
-  count: imported_items.size
+{% liquid
+  parse_json flash
+    { "notice": "items.bulk_imported", "from": "/dashboard" }
+  endparse_json
+  session sflash = flash
+  redirect_to '/dashboard'
+  break
 %}
 ```
 
 Use in layout:
 
 ```liquid
-{% if sflash.notice contains 'bulk_imported' %}
-  {{ sflash.notice | t: count: imported_count }}
+{%- assign flash = context.session.sflash | parse_json -%}
+{% if flash.notice contains 'bulk_imported' %}
+  {{ flash.notice | t: count: imported_count }}
 {% endif %}
 ```
 

@@ -16,7 +16,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 echo "Starting deployment to $ENV at $TIMESTAMP"
 
 # Run validation
-platformos-check || exit 1
+insites-cli audit || exit 1
 
 # Deploy
 insites-cli deploy $ENV
@@ -27,7 +27,7 @@ insites-cli test run $ENV || exit 1
 
 # Check for errors
 echo "Checking logs for errors..."
-ERRORS=$(insites-cli logs $ENV --filter "error" | wc -l)
+ERRORS=$(insites-cli logsv2 $ENV --filter "error" | wc -l)
 if [ $ERRORS -gt 0 ]; then
   echo "Warning: Found error logs"
 fi
@@ -41,7 +41,9 @@ Usage:
 ./deploy.sh production
 ```
 
-### Batch Module Installation
+### Batch Module Pull
+
+> **CLI STATUS:** `insites-cli modules install` is not yet available. Module installation is currently done manually. You can pull existing modules from an instance:
 
 ```bash
 #!/bin/bash
@@ -49,8 +51,8 @@ MODULES=("@platform-os/core" "@platform-os/blog" "my-module")
 ENV=$1
 
 for MODULE in "${MODULES[@]}"; do
-  echo "Installing $MODULE..."
-  insites-cli modules install $MODULE $ENV
+  echo "Pulling $MODULE..."
+  insites-cli modules pull $MODULE $ENV
 done
 ```
 
@@ -59,19 +61,19 @@ done
 ### Real-time Log Monitoring
 
 ```bash
-insites-cli logs dev --follow --filter "error"
+insites-cli logsv2 dev --follow --filter "error"
 ```
 
 ### Log Export to File
 
 ```bash
-insites-cli logs staging > logs.txt 2>&1
+insites-cli logsv2 staging > logs.txt 2>&1
 ```
 
 ### Pattern-based Filtering
 
 ```bash
-insites-cli logs dev --filter "api_call.*timeout"
+insites-cli logsv2 dev --filter "api_call.*timeout"
 ```
 
 ## Constants Management at Scale
@@ -161,7 +163,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: npm install -g /insites-cli
-      - run: platformos-check
+      - run: insites-cli audit
       - run: insites-cli deploy staging
         env:
           POS_TOKEN: ${{ secrets.POS_TOKEN }}
@@ -174,7 +176,7 @@ deploy:
   image: node:16
   script:
     - npm install -g /insites-cli
-    - platformos-check
+    - insites-cli audit
     - insites-cli deploy $CI_ENVIRONMENT_NAME
   only:
     - main
@@ -199,7 +201,7 @@ Use multiple terminal sessions:
 insites-cli sync dev --watch
 
 # Terminal 2: Monitor logs
-insites-cli logs dev --follow
+insites-cli logsv2 dev --follow
 
 # Terminal 3: Local development
 insites-cli gui serve
@@ -229,7 +231,8 @@ insites-cli deploy dev --dry-run
 View current environment:
 
 ```bash
-insites-cli env current
+# Note: insites-cli env current does not exist.
+# Check your .insites file directly to verify environment configuration.
 insites-cli env info dev
 ```
 

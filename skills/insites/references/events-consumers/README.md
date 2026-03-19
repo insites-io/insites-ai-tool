@@ -7,14 +7,19 @@ Events decouple actions from side effects. A command publishes an event; consume
 - Events: `app/lib/events/`
 - Consumers: `app/lib/consumers/`
 
+> **Module path:** When building a module, use `modules/<module_name>/public/lib/events/` for events that other modules can subscribe to, or `modules/<module_name>/private/lib/events/` for internal events. Consumers typically go in `modules/<module_name>/private/lib/consumers/`.
+
 ## Publishing Events
 
 ```liquid
-{% function _ = 'modules/core/commands/events/publish',
-  type: 'order_created',
-  object: order
-%}
+{% comment %} Trigger consumers for this event {% endcomment %}
+{% background source_name: 'event:order_created', priority: 'default' %}
+  {% function _ = 'lib/consumers/order_created/send_confirmation_email', event: order %}
+  {% function _ = 'lib/consumers/order_created/update_inventory', event: order %}
+{% endbackground %}
 ```
+
+This is the recommended way to publish events -- using the `{% background %}` tag directly to dispatch consumers asynchronously.
 
 ## Consumer Structure
 

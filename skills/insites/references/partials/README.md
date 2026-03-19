@@ -6,6 +6,8 @@ Partials contain all presentation HTML and reusable logic. They are the building
 
 `app/views/partials/`
 
+> **Module path:** When building a module, use `modules/<module_name>/public/views/partials/` for partials accessible to the app and other modules, or `modules/<module_name>/private/views/partials/` for partials only used within the module.
+
 ## Rendering Partials
 
 ### As a template (render)

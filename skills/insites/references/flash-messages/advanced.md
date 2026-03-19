@@ -9,11 +9,11 @@ Advanced patterns and techniques for sophisticated flash message implementations
 Apply dynamic CSS classes based on flash type and user preferences:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 
-{% if sflash %}
-  {% assign theme = context.user.theme_preference | default: 'light' %}
-  {% assign flash_type = sflash.notice | default: sflash.alert | default: sflash.warning %}
+{% if flash %}
+  {% assign theme = context.current_user.theme_preference | default: 'light' %}
+  {% assign flash_type = flash.notice | default: flash.alert | default: flash.warning %}
   {% assign flash_class = 'flash-' | append: flash_type | append: '-' | append: theme %}
 
   <div class="flash {{ flash_class }}" role="alert">
@@ -57,8 +57,8 @@ Implement JavaScript-based flash animation and auto-dismiss:
 
 ```liquid
 <script>
-  {% include 'modules/core/helpers/flash/get_flash' %}
-  {% if sflash.notice %}
+  {%- assign flash = context.session.sflash | parse_json -%}
+  {% if flash.notice %}
     const flash = document.querySelector('.flash');
     flash.addEventListener('animationend', function() {
       flash.remove();
@@ -88,17 +88,17 @@ Implement JavaScript-based flash animation and auto-dismiss:
 Show different messages based on user attributes:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 
-{% if context.user.is_premium? %}
+{% if context.current_user.is_premium? %}
   {% assign flash_prefix = 'premium' %}
-{% elsif context.user.is_trial? %}
+{% elsif context.current_user.is_trial? %}
   {% assign flash_prefix = 'trial' %}
 {% else %}
   {% assign flash_prefix = 'free' %}
 {% endif %}
 
-{% assign localized_key = sflash.notice | prepend: flash_prefix | append: '_message' %}
+{% assign localized_key = flash.notice | prepend: flash_prefix | append: '_message' %}
 {{ localized_key | t }}
 ```
 
@@ -107,13 +107,15 @@ Show different messages based on user attributes:
 Combine flash messages with deep linking:
 
 ```liquid
-{% if form.valid? %}
-  {% assign deep_link = '/items/' | append: item.id | append: '#details' %}
-  {% include 'modules/core/helpers/redirect_to',
-    url: deep_link,
-    notice: 'item.saved'
-  %}
-{% endif %}
+{% liquid
+  assign deep_link = '/items/' | append: item.id | append: '#details'
+  parse_json flash_data
+    { "notice": "item.saved", "from": {{ deep_link | json }} }
+  endparse_json
+  session sflash = flash_data
+  redirect_to deep_link
+  break
+%}
 ```
 
 ## Flash Message Persistence Across Domain Changes
@@ -124,12 +126,11 @@ When redirecting between subdomains, ensure flash persists:
 <!-- Flash by default doesn't persist across subdomains -->
 <!-- Solution: Store in session with longer TTL -->
 
-{% assign session.persistent_flash = sflash | json %}
-{% assign session.persistent_flash_ttl = 'now' | date: '%s' | plus: 3600 %}
+{% session persistent_flash = flash | json %}
+{% assign ttl = 'now' | date: '%s' | plus: 3600 %}
+{% session persistent_flash_ttl = ttl %}
 
-{% include 'modules/core/helpers/redirect_to',
-  url: 'https://other-subdomain.example.com/page'
-%}
+{% redirect_to 'https://other-subdomain.example.com/page' %}
 ```
 
 ## Flash Analytics and Tracking
@@ -137,14 +138,14 @@ When redirecting between subdomains, ensure flash persists:
 Log flash messages for analytics:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 
-{% if sflash %}
+{% if flash %}
   {% assign flash_type = 'notice' | default: 'alert' %}
   {% graphql log = 'log_flash_event'
     type: flash_type,
-    message_key: sflash.notice | default: sflash.alert,
-    user_id: context.user.id,
+    message_key: flash.notice | default: flash.alert,
+    user_id: context.current_user.id,
     timestamp: 'now'
   %}
 {% endif %}
@@ -155,19 +156,20 @@ Log flash messages for analytics:
 Display detailed error information in flash:
 
 ```liquid
-{% if form.errors? %}
-  {% assign error_list = form.errors | map: 'message' | join: ', ' %}
-  {% include 'modules/core/helpers/redirect_to',
-    url: request.url_path,
-    alert: 'form.validation_error',
-    error_details: error_list
-  %}
-{% endif %}
+{% liquid
+  assign error_list = form.errors | map: 'message' | join: ', '
+  parse_json flash_data
+    { "alert": "form.validation_error", "error_details": {{ error_list | json }}, "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash_data
+  redirect_to context.location.pathname
+  break
+%}
 
 <!-- In layout -->
-{% if sflash.alert %}
+{% if flash.alert %}
   <div class="alert">
-    <p>{{ sflash.alert | t }}</p>
+    <p>{{ flash.alert | t }}</p>
     {% if sflash.error_details %}
       <ul>
         {% for error in sflash.error_details | split: ', ' %}
@@ -187,16 +189,16 @@ Enhance user experience with progressive flash enhancements:
 <!-- No JavaScript fallback -->
 <noscript>
   <div class="flash-static">
-    {% include 'modules/core/helpers/flash/get_flash' %}
-    {{ sflash.notice | t }}
+    {%- assign flash = context.session.sflash | parse_json -%}
+    {{ flash.notice | t }}
   </div>
 </noscript>
 
 <!-- JavaScript enhancement -->
 <script>
-  {% include 'modules/core/helpers/flash/get_flash' %}
-  if ('{% if sflash %}true{% else %}false{% endif %}' === 'true') {
-    initializeEnhancedFlash('{{ sflash.notice | t | escape_javascript }}');
+  {%- assign flash = context.session.sflash | parse_json -%}
+  if ('{% if flash %}true{% else %}false{% endif %}' === 'true') {
+    initializeEnhancedFlash('{{ flash.notice | t | escape_javascript }}');
   }
 </script>
 ```
@@ -210,8 +212,8 @@ Implement accessible flash messages:
      role="alert"
      aria-live="polite"
      aria-atomic="true">
-  {% include 'modules/core/helpers/flash/get_flash' %}
-  {{ sflash.notice | t }}
+  {%- assign flash = context.session.sflash | parse_json -%}
+  {{ flash.notice | t }}
 </div>
 
 <style>

@@ -2,17 +2,11 @@
 
 ## Common Errors
 
-### "Template not found: modules/core/commands/build"
-
-**Cause:** The `pos-module-core` module is not installed or not synced.
-
-**Solution:** Run `insites-cli modules install core` and deploy or sync.
-
 ### "Liquid error: undefined variable 'object'"
 
-**Cause:** The variable name inside `parse_json` does not match what is passed to `build`. Or the `{% function %}` assignment was skipped.
+**Cause:** The variable name inside `parse_json` does not match what is referenced later, or the `{% assign %}` / `{% function %}` assignment was skipped.
 
-**Solution:** Ensure `parse_json` assigns to `object` and the build call uses `object: object`.
+**Solution:** Ensure `parse_json` assigns to `object` and that subsequent stages reference the same variable name.
 
 ### "app.errors.blank" on a field that has a value
 
@@ -34,9 +28,9 @@
 
 ### "record_create returned nil" or empty result after execute
 
-**Cause:** The `selection` parameter does not match the top-level field in the GraphQL mutation response.
+**Cause:** The response field in `r.record_create` does not match the top-level field in the GraphQL mutation response.
 
-**Solution:** If your mutation uses `record_create(...)`, the selection must be `'record_create'`. If it uses `record_update(...)`, use `'record_update'`. Check the `.graphql` file.
+**Solution:** If your mutation uses `record_create(...)`, use `r.record_create`. If it uses `record_update(...)`, use `r.record_update`. Check the `.graphql` file to confirm the operation name.
 
 ### "Validation passed but record was not created"
 
@@ -52,20 +46,20 @@
 
 ### "Mutation variable $object is not defined"
 
-**Cause:** The GraphQL mutation file expects `$object` but the execute helper is not passing it correctly, or the mutation signature is wrong.
+**Cause:** The GraphQL mutation file expects `$object` but the `graphql` tag is not passing it correctly via `args:`, or the mutation signature is wrong.
 
-**Solution:** Ensure the mutation declares `mutation name($object: HashObject!)` and references `$object.field_name` in property values.
+**Solution:** Ensure the mutation declares `mutation name($object: HashObject!)` and references `$object.field_name` in property values. In the command, use `{% graphql r = 'mutation_path', args: object %}`.
 
 ## Limits
 
 | Limit | Value | Notes |
 |-------|-------|-------|
-| Validators per check call | No hard limit | Keep reasonable for performance (under 50) |
+| Validator calls per check stage | No hard limit | Keep reasonable for performance (under 50) |
 | Nested command depth | No hard limit | Avoid deep nesting; prefer events for decoupling |
 | Object properties | No hard limit | Properties must match schema table fields for persistence |
 | Background job max_attempts | 1-5 | Commands run as background jobs inherit this limit |
 | GraphQL mutation timeout | Platform default | Long-running mutations may time out |
-| Uniqueness validator | Requires table option | Queries the database; slower than other validators |
+| Uniqueness check | Requires GraphQL count query | Queries the database; slower than other checks |
 
 ## Troubleshooting Flowchart
 
@@ -89,7 +83,6 @@ Command returns unexpected result
 │   ├── Mutation .graphql file missing id in selection set
 │   └── selection parameter mismatch
 └── "Template not found" error
-    ├── pos-module-core not installed
     ├── Command path typo in {% function %} call
     └── File in wrong directory (must be app/lib/commands/)
 ```

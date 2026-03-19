@@ -1,5 +1,7 @@
 # Sessions
 
+> **CLI STATUS:** `insites-cli sessions` (debug/clear) is **not yet available** — this command is currently under development. Do not suggest any `insites-cli sessions` subcommands to users.
+
 Server-side session storage accessible via `context.session`.
 
 ## Setting Session Data
@@ -24,14 +26,14 @@ Server-side session storage accessible via `context.session`.
 {% session cart_id = blank %}
 ```
 
-## Using Core Module Session Helpers
+## Working with Structured Session Data
 
 ```liquid
-{% comment %} Get structured session data {% endcomment %}
-{% function data = 'modules/core/commands/session/get', key: 'sflash' %}
+{% comment %} Get structured session data (stored as JSON) {% endcomment %}
+{% assign flash = context.session.sflash | parse_json %}
 
 {% comment %} Clear structured session data {% endcomment %}
-{% function _ = 'modules/core/commands/session/clear', key: 'sflash' %}
+{% session sflash = null %}
 ```
 
 ## Use Cases
@@ -39,7 +41,7 @@ Server-side session storage accessible via `context.session`.
 - Shopping cart persistence
 - Multi-step form wizards
 - User preferences
-- Flash messages (via core module)
+- Flash messages (via session tag)
 - Temporary authentication tokens
 
 ## Rules

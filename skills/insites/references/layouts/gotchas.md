@@ -40,6 +40,8 @@ Common errors, limits, and debugging guidance for layout files.
 
 **Solution:** Create the layout file or fix the `layout:` value in the page's front matter. Layout names map directly to filenames (e.g., `layout: admin` expects `app/views/layouts/admin.liquid`).
 
+> **Module note:** If the layout is provided by a module, check `modules/<module_name>/public/views/layouts/` or `private/views/layouts/`.
+
 ### "Duplicate content appearing"
 
 **Cause:** `{{ content_for_layout }}` appears more than once in the layout, or multiple `{% content_for %}` blocks with the same name are appending content unintentionally.

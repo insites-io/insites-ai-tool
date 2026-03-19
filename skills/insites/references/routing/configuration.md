@@ -6,6 +6,8 @@ Configure how Insites converts file-based pages into HTTP routes with dynamic pa
 
 File-based routing automatically maps pages in `app/views/pages/` to URL routes. Pages become endpoints without explicit route configuration.
 
+> **Module path:** Module pages in `modules/<module_name>/public/views/pages/` are also mapped to routes automatically. The same slug, method, and content-type rules apply.
+
 ## Slug Syntax
 
 The page filename (without extension) becomes the URL slug. Use special characters and syntax for dynamic routes:

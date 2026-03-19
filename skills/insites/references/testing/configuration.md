@@ -2,7 +2,7 @@
 
 ## Test Setup
 
-Insites uses `pos-module-tests` for automated testing framework.
+Insites uses the platform's built-in automated testing framework.
 
 ## Test File Location and Structure
 

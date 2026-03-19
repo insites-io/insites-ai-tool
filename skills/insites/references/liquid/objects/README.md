@@ -58,7 +58,18 @@ CSRF token for non-GET forms.
 ```
 
 ### context.current_user
-User data (id, email, first_name, last_name, slug). **NEVER use directly** — use `modules/user/queries/user/current` instead.
+User data (id, email, first_name, last_name, slug). Use this to check authentication and fetch the full user profile via GraphQL:
+
+```liquid
+{% liquid
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+%}
+```
 
 ### context.constants
 Environment constants (API keys, secrets). Hidden from `{{ context }}` output for security.

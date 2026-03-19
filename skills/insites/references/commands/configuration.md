@@ -4,6 +4,8 @@
 
 Commands live under `app/lib/commands/` which maps to `app/views/partials/lib/commands/` at runtime. Organize by resource name, then action:
 
+> **Module path:** In modules, commands live in `modules/<module_name>/public/views/partials/lib/commands/` (callable from app and other modules) or `modules/<module_name>/private/views/partials/lib/commands/` (internal only). The function call path remains relative.
+
 ```
 app/
 ├── lib/
@@ -93,58 +95,58 @@ Every command file follows this skeleton:
 ```liquid
 {% comment %} app/lib/commands/products/create.liquid {% endcomment %}
 
-{% comment %} === BUILD === {% endcomment %}
+{% comment %} === BUILD: whitelist input fields === {% endcomment %}
 {% parse_json object %}
   {
     "title": {{ title | json }},
     "price": {{ price | json }}
   }
 {% endparse_json %}
-{% function object = 'modules/core/commands/build', object: object %}
 
-{% comment %} === CHECK === {% endcomment %}
-{% parse_json validators %}
-  [
-    { "name": "presence", "property": "title" },
-    { "name": "numericality", "property": "price" }
-  ]
-{% endparse_json %}
-{% function object = 'modules/core/commands/check', object: object, validators: validators %}
+{% comment %} === CHECK: validate fields === {% endcomment %}
+{% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
 
-{% comment %} === EXECUTE === {% endcomment %}
+{% if object.title == blank %}
+  {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['title'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% if object.price == blank %}
+  {% assign field_errors = c.errors.price | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['price'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% assign object = object | hash_merge: c %}
+
+{% comment %} === EXECUTE: persist to database === {% endcomment %}
 {% if object.valid %}
-  {% function object = 'modules/core/commands/execute',
-    mutation_name: 'products/create',
-    selection: 'record_create',
-    object: object
-  %}
+  {% graphql r = 'products/create', args: object %}
+  {% if r.errors %}
+    {% log r, type: 'ERROR: products/create' %}
+  {% endif %}
+  {% assign object = r.record_create %}
+  {% hash_assign object['valid'] = true %}
 {% endif %}
 
 {% return object %}
 ```
 
-## Module Dependency
-
-Commands require `pos-module-core`. Ensure it is installed:
-
-```bash
-insites-cli modules install core
-```
-
-The core module provides the `build`, `check`, and `execute` helpers. Without it, the `modules/core/commands/*` partials will not resolve.
+The build step is simply the `parse_json` block that whitelists fields. The check step validates each field inline using the contract pattern (`c` hash with `errors` and `valid`). The execute step is an inline `graphql` call with `args: object`. If you find yourself repeating the same validation logic, you can extract it into reusable helper partials (see the code management tip at the end of [patterns.md](patterns.md)).
 
 ## Configuration Checklist
 
 - [ ] Command file at `app/lib/commands/<resource>/<action>.liquid`
 - [ ] GraphQL mutation at `app/graphql/<resource>/<action>.graphql`
 - [ ] Schema table at `app/schema/<resource>.yml`
-- [ ] `pos-module-core` installed
-- [ ] `platformos-check` passes with zero errors
+- [ ] Inline validation logic in the check stage for each required field
+- [ ] `insites-cli audit` passes with zero errors
 
 ## See Also
 
 - [README.md](README.md) -- Commands overview and getting started
-- [api.md](api.md) -- Core module helper signatures and validator details
+- [api.md](api.md) -- Validator helpers, result structure, and calling conventions
 - [patterns.md](patterns.md) -- Real-world command examples
 - [gotchas.md](gotchas.md) -- Common configuration mistakes
 - [advanced.md](advanced.md) -- Multi-step commands and advanced configuration

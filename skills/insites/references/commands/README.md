@@ -1,6 +1,6 @@
 # Commands (Business Logic)
 
-Commands encapsulate business rules in Insites following the **build, check, execute** pattern. They provide a structured, testable approach to all create, update, and delete operations using pos-module-core helpers.
+Commands encapsulate business rules in Insites following the **build, check, execute** pattern. They provide a structured, testable approach to all create, update, and delete operations. Each stage is implemented inline in the command file using standard Liquid tags.
 
 ## Key Purpose
 
@@ -40,9 +40,9 @@ Page (Controller) --- calls ---> Command partial
                             result     event (optional)
 ```
 
-1. **Build** -- Assemble a data object from input parameters using `parse_json` and `modules/core/commands/build`.
-2. **Check** -- Validate the object against a JSON array of validators using `modules/core/commands/check`.
-3. **Execute** -- If `object.valid` is true, persist via `modules/core/commands/execute` with a GraphQL mutation.
+1. **Build** -- Assemble a data object from input parameters using `parse_json` to whitelist fields.
+2. **Check** -- Validate the object by initializing a contract (`{ "errors": {}, "valid": true }`) and running inline validation checks for each required field.
+3. **Execute** -- If `object.valid` is true, persist via an inline `graphql` call with `args: object`.
 
 The result object always contains `valid` (boolean), `errors` (hash), and the original data fields.
 
@@ -57,18 +57,25 @@ The result object always contains `valid` (boolean), `errors` (hash), and the or
 Minimal command:
 
 ```liquid
+{% comment %} === BUILD === {% endcomment %}
 {% parse_json object %}
   { "title": {{ title | json }} }
 {% endparse_json %}
-{% function object = 'modules/core/commands/build', object: object %}
 
-{% parse_json validators %}
-  [{ "name": "presence", "property": "title" }]
-{% endparse_json %}
-{% function object = 'modules/core/commands/check', object: object, validators: validators %}
+{% comment %} === CHECK === {% endcomment %}
+{% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
+{% if object.title == blank %}
+  {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['title'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+{% assign object = object | hash_merge: c %}
 
+{% comment %} === EXECUTE === {% endcomment %}
 {% if object.valid %}
-  {% function object = 'modules/core/commands/execute', mutation_name: 'products/create', selection: 'record_create', object: object %}
+  {% graphql r = 'products/create', args: object %}
+  {% assign object = r.record_create %}
+  {% hash_assign object['valid'] = true %}
 {% endif %}
 {% return object %}
 ```
@@ -76,7 +83,7 @@ Minimal command:
 ## See Also
 
 - [configuration.md](configuration.md) -- File naming, directory layout, and setup conventions
-- [api.md](api.md) -- Core module helpers, validator signatures, and return types
+- [api.md](api.md) -- Validator helpers, result structure, and calling conventions
 - [patterns.md](patterns.md) -- Common command workflows and real-world examples
 - [gotchas.md](gotchas.md) -- Common errors, limits, and troubleshooting
 - [advanced.md](advanced.md) -- Nested commands, background execution, and optimization

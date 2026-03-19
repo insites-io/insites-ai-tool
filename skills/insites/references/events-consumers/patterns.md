@@ -29,10 +29,9 @@ Send emails asynchronously after important actions without blocking the user req
 {%- endgraphql -%}
 
 {%- if g.user_create.user -%}
-  {%- include 'modules/core/commands/events/publish',
-      type: 'user_created',
-      object: g.user_create.user
-  -%}
+  {%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+    {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: g.user_create.user -%}
+  {%- endbackground -%}
 {%- endif -%}
 ```
 
@@ -42,13 +41,10 @@ Send emails asynchronously after important actions without blocking the user req
 {%- assign user_email = event.object.email -%}
 {%- assign user_name = event.object.first_name -%}
 
-{%- include 'modules/core/commands/mail/send',
+{%- graphql _ = 'emails/send_welcome',
     to: user_email,
-    template: 'welcome_email',
-    variables: {
-      user_name: user_name,
-      user_id: event.object.id
-    }
+    user_name: user_name,
+    user_id: event.object.id
 -%}
 ```
 
@@ -110,14 +106,10 @@ Synchronize inventory asynchronously when orders are created or cancelled.
 ### Event Publication** (after order creation):
 
 ```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'order_created',
-    object: {
-      id: order.id,
-      items: order.items,
-      status: 'confirmed'
-    }
--%}
+{%- background source_name: 'event:order_created', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/order_created/update_inventory', event: order -%}
+  {%- function _ = 'lib/consumers/order_created/send_order_confirmation', event: order -%}
+{%- endbackground -%}
 ```
 
 ### Consumer Handler** (`app/lib/consumers/order_created/update_inventory.liquid`):
@@ -178,10 +170,9 @@ On success, publish payment_succeeded event
 {%- endgraphql -%}
 
 {%- if g.payment_process.payment.status == 'succeeded' -%}
-  {%- include 'modules/core/commands/events/publish',
-      type: 'payment_succeeded',
-      object: g.payment_process.payment
-  -%}
+  {%- background source_name: 'event:payment_succeeded', priority: 'default', max_attempts: 3 -%}
+    {%- function _ = 'lib/consumers/payment_succeeded/start_fulfillment', event: g.payment_process.payment -%}
+  {%- endbackground -%}
 {%- endif -%}
 ```
 
@@ -205,10 +196,9 @@ Start fulfillment when payment succeeds
   }
 {%- endgraphql -%}
 
-{%- include 'modules/core/commands/events/publish',
-    type: 'fulfillment_started',
-    object: g.fulfillment_create.fulfillment
--%}
+{%- background source_name: 'event:fulfillment_started', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Fulfillment consumers here {%- endcomment -%}
+{%- endbackground -%}
 ```
 
 ### Caution
@@ -234,10 +224,9 @@ Includes error handling to prevent consumer failure
 
 {%- if admin_email -%}
   {%- capture result -%}
-    {%- include 'modules/core/commands/mail/send',
+    {%- graphql _ = 'emails/send_new_user_notification',
         to: admin_email,
-        template: 'new_user_notification',
-        variables: event.object
+        user_id: event.object.id
     -%}
   {%- endcapture -%}
 
@@ -329,14 +318,9 @@ Once published, event data should not change:
 
 ```liquid
 {%- comment -%}GOOD: Snapshot of state at publish time{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'order_created',
-    object: {
-      id: order.id,
-      total: order.total,
-      customer_name: customer.name
-    }
--%}
+{%- background source_name: 'event:order_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Consumer logic with order snapshot data {%- endcomment -%}
+{%- endbackground -%}
 ```
 
 ### 2. Document Event Contracts
@@ -364,15 +348,10 @@ Include all data consumers need:
 
 ```liquid
 {%- comment -%}GOOD: Rich event object{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: {
-      id: user.id,
-      email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name
-    }
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Pass full user data snapshot to consumers {%- endcomment -%}
+  {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: user -%}
+{%- endbackground -%}
 ```
 
 ### 4. Avoid Stale References
@@ -381,16 +360,14 @@ Don't rely on references to objects that might change:
 
 ```liquid
 {%- comment -%}AVOID: Relying on re-fetching{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: { id: user.id }
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Only passing ID — consumer must refetch (avoid this) {%- endcomment -%}
+{%- endbackground -%}
 
 {%- comment -%}GOOD: Include data snapshot{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: user
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: user -%}
+{%- endbackground -%}
 ```
 
 ## See Also

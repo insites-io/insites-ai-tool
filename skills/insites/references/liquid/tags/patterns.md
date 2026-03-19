@@ -8,8 +8,17 @@ Every page should follow the thin-controller pattern: authenticate, fetch, deleg
 
 ```liquid
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'orders.list'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql orders = 'orders/search', user_id: profile.id, page: context.params.page
   render 'orders/index', orders: orders.records.results, user: profile
 %}
@@ -225,7 +234,12 @@ Build JSON API responses with proper headers and status codes.
 ```liquid
 {% liquid
   response_headers '{"Content-Type": "application/json", "Cache-Control": "no-store"}'
-  function profile = 'modules/user/queries/user/current'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
   unless profile
     response_status 401
     render 'api/error', message: 'Unauthorized'
@@ -251,6 +265,65 @@ Build and modify hashes dynamically.
   graphql results = 'records/search', options: defaults
 %}
 ```
+
+## Whitespace Stripping with `{%- -%}`
+
+Use `{%- -%}` (hyphenated tags) to strip whitespace before and after the tag. This prevents blank lines in rendered HTML output.
+
+### When to use `{%- -%}` — HTML template partials
+
+Without stripping, every Liquid tag leaves a blank line in the output:
+
+```liquid
+{% comment %} BAD: Produces blank lines between each element {% endcomment %}
+{% assign name = user.first_name %}
+{% assign greeting = 'Hello, ' | append: name %}
+<h1>{{ greeting }}</h1>
+```
+
+Output has empty lines above `<h1>`. With stripping:
+
+```liquid
+{%- assign name = user.first_name -%}
+{%- assign greeting = 'Hello, ' | append: name -%}
+<h1>{{ greeting }}</h1>
+```
+
+Clean output with no blank lines.
+
+### When NOT to use `{%- -%}` — inside `{% liquid %}` blocks
+
+Inside `{% liquid %}` blocks, there is no HTML output, so whitespace stripping is irrelevant and adds visual noise:
+
+```liquid
+{% comment %} CORRECT: No hyphens needed inside liquid block {% endcomment %}
+{% liquid
+  assign name = user.first_name
+  assign greeting = 'Hello, ' | append: name
+  render 'shared/greeting', message: greeting
+%}
+```
+
+### Practical rule
+
+| Context | Use | Example |
+|---------|-----|---------|
+| Tags mixed with HTML | `{%- -%}` | `{%- assign logo = brand.logo | asset_url -%}` |
+| `{{ }}` output mixed with HTML | `{{- -}}` | `{{- product.title -}}` |
+| Inside `{% liquid %}` blocks | Plain (no hyphens) | `assign logo = brand.logo | asset_url` |
+| Logic-only partials (commands, queries) | `{% liquid %}` block (preferred) | Keeps all logic clean without needing hyphens |
+
+### Real-world example — layout partial with clean output
+
+```liquid
+{%- function brand = 'lib/queries/brand/get' -%}
+{%- assign logo = brand.logo | asset_url -%}
+{%- assign icon = brand.icon | asset_url -%}
+<link rel="icon" href="{{ icon }}">
+<img src="{{ logo }}" alt="{{ brand.name }}">
+```
+
+Without the `{%- -%}`, there would be 2 blank lines above the `<link>` tag in the rendered HTML.
 
 ## See Also
 

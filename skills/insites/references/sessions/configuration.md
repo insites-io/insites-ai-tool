@@ -43,15 +43,7 @@ Sessions are automatically initialized when first used:
 
 ### Session Configuration
 
-Configure in admin or `.pos` file:
-
-```yaml
-sessions:
-  enabled: true
-  timeout_minutes: 30
-  secure_cookies: true
-  same_site: 'Lax'
-```
+Session settings are managed by the platform. The `.insites` file only contains environment credentials — it does not have session configuration options. Sessions are enabled by default and configured through the Insites admin portal.
 
 ## Session Data Types
 

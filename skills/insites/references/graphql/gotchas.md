@@ -16,6 +16,8 @@ Common errors, limits, and troubleshooting for GraphQL in Insites.
 
 **Solution:** Verify the file exists at `app/graphql/products/serch.graphql`. The path is relative to `app/graphql/` without the `.graphql` extension. Check spelling and directory names.
 
+> **Module note:** If the GraphQL file is inside a module, check `modules/<module_name>/public/graphql/` or `private/graphql/` instead.
+
 ### "Variable $id of type ID! was provided invalid value"
 
 **Cause:** A required variable (marked with `!`) was not passed or was passed as `nil`/empty.

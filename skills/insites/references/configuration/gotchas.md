@@ -2,27 +2,22 @@
 
 ## Secrets Leaked in Version Control
 
-### Committing .pos File with Real Tokens
+### Committing .insites File with Real Tokens
 
-```yaml
-# WRONG: .pos file with real tokens committed to git
-environments:
-  production:
-    token: 'abc123realproductiontoken'
-    endpoint: 'https://production.platformos.com'
+```json
+// WRONG: .insites file with real tokens committed to git
+{
+  "production": {
+    "instance_uuid": "real-uuid",
+    "token": "abc123realproductiontoken",
+    "email": "admin@company.com",
+    "url": "https://production-instance.platform-os.com",
+    "key": "real-key"
+  }
+}
 ```
 
-**Solution:** Use environment variables:
-
-```yaml
-# RIGHT: Reference environment variables
-environments:
-  production:
-    token: $PRODUCTION_TOKEN
-    endpoint: $PRODUCTION_ENDPOINT
-```
-
-Never commit real credentials. Add `.pos` to `.gitignore`.
+**Solution:** Never commit real credentials. Add `.insites` to `.gitignore`. Generate the file per-machine using `insites-cli env add`.
 
 ## Configuration Not Reloading After Changes
 

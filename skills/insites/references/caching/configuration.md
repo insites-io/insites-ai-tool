@@ -23,15 +23,7 @@ Useful for small, frequently-accessed data.
 
 Distributed cache for multi-server setups:
 
-```yaml
-# .pos file
-caching:
-  backend: 'redis'
-  url: 'redis://localhost:6379'
-  db: 0
-```
-
-Configured automatically in production. All servers share same cache pool.
+Caching backend is managed by the platform automatically. In production, all servers share the same cache pool. There is no user-configurable cache backend setting.
 
 ## Cache Expiration Strategy
 
@@ -122,18 +114,9 @@ Clear all caches on deploy:
 insites-cli cache clear --all staging
 ```
 
-## Configuration in .pos
+## Cache Configuration
 
-### Cache Settings
-
-```yaml
-caching:
-  backend: 'redis'
-  enabled: true
-  max_size: '1GB'
-  ttl_default: 3600
-  ttl_max: 604800  # 7 days
-```
+Cache settings are managed by the platform. The `.insites` file only contains environment credentials — it does not have cache configuration options. Cache behavior is controlled through the `{% cache %}` Liquid tag parameters (key, expire) on a per-usage basis.
 
 ## Cache Metrics
 

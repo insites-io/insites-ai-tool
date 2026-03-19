@@ -2,6 +2,8 @@
 
 This document covers all configuration options for page files in `app/views/pages/`.
 
+> **Module path:** In modules, pages live in `modules/<module_name>/public/views/pages/` (accessible as routes) or `modules/<module_name>/private/views/pages/` (internal only). Slug resolution and front matter work identically.
+
 ## Front Matter
 
 Every page file can include YAML front matter between `---` delimiters at the top of the file. Front matter configures routing, layout, and metadata.
@@ -28,7 +30,7 @@ metadata:
 | `response_headers` | Hash | `{}` | Custom HTTP response headers                      |
 | `max_deep_level` | Int | `3` | Maximum nesting depth for recursive partials       |
 
-**Important:** Do NOT use `authorization_policies` in front matter. Use `pos-module-user` helpers for access control instead.
+**Tip:** Use `authorization_policies` in front matter for page-level access control guards (e.g., restricting to logged-in users).
 
 ## Slug Configuration
 

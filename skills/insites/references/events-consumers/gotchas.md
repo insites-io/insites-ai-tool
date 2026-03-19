@@ -88,10 +88,9 @@ Consumer reads old data or data changes between publish and execution.
 
 ```liquid
 {%- comment -%}Handler publishes event with ID only{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: { id: user.id }
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Only passing ID — consumer must refetch (fragile) {%- endcomment -%}
+{%- endbackground -%}
 
 {%- comment -%}Consumer tries to fetch - data might have changed{%- endcomment -%}
 {%- graphql -%}
@@ -113,16 +112,10 @@ Consumer reads old data or data changes between publish and execution.
 
 ```liquid
 {%- comment -%}Publish with complete snapshot{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: {
-      id: user.id,
-      email: user.email,
-      first_name: user.first_name,
-      status: user.status,
-      created_at: user.created_at
-    }
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Pass full user data snapshot to consumers {%- endcomment -%}
+  {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: user -%}
+{%- endbackground -%}
 
 {%- comment -%}Consumer uses published data, not fetched{%- endcomment -%}
 {%- assign user_email = event.object.email -%}
@@ -224,23 +217,17 @@ but inventory hasn't been decremented yet
 
 ```liquid
 {%- comment -%}Single consumer for coordinated actions{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'order_created',
-    object: {
-      id: order.id,
-      items: order.items,
-      customer_email: customer.email,
-      total: order.total
-    }
--%}
+{%- background source_name: 'event:order_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Include all data consumers need {%- endcomment -%}
+  {%- function _ = 'lib/consumers/order_created/complete_order', event: order -%}
+{%- endbackground -%}
 
 {%- comment -%}One consumer handles email + inventory{%- endcomment -%}
 {%- comment -%}File: app/lib/consumers/order_created/complete_order.liquid{%- endcomment -%}
 
 {%- comment -%}Send email{%- endcomment -%}
-{%- include 'modules/core/commands/mail/send',
-    to: event.object.customer_email,
-    template: 'order_confirmation'
+{%- graphql _ = 'emails/send_order_confirmation',
+    to: event.object.customer_email
 -%}
 
 {%- comment -%}Update inventory{%- endcomment -%}

@@ -16,35 +16,61 @@ Common errors and platform constraints when working with authentication and auth
 
 ### "User appears anonymous despite being logged in"
 
-**Cause:** Using `context.current_user` directly instead of the module query. The raw context object has different behavior and may not reflect the full user profile.
+**Cause:** `context.current_user` only contains basic fields (id, email). It does not include roles or custom properties. If you check roles on `context.current_user` directly, they will be nil.
 
-**Solution:** Always fetch the user through the module:
+**Solution:** Load the full profile with roles via GraphQL:
 
 ```liquid
-{% function profile = 'modules/user/queries/user/current' %}
+{% liquid
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+%}
 ```
 
 ### "Permission check always returns false"
 
-**Cause:** The action string in the page does not match any entry in `permissions.liquid`. Action strings are exact matches -- no wildcards.
+**Cause:** The action string in the page does not match any entry in your permissions map. Action strings are exact matches -- no wildcards. Or the user's roles array does not include the expected role.
 
-**Solution:** Verify the action string in your `permissions.liquid` file matches exactly what you pass to `can_do`:
+**Solution:** Verify the action string in your permissions partial matches exactly what you check, and that the user has the correct role assigned:
 
 ```liquid
 {% comment %} In permissions.liquid: "editor": ["article.create"] {% endcomment %}
 {% comment %} In page -- must match exactly: {% endcomment %}
-{% function can = 'modules/user/helpers/can_do', requester: profile, do: 'article.create' %}
+{% liquid
+  parse_json permissions
+    {
+      "admin": ["article.create", "article.update", "article.delete"],
+      "editor": ["article.create"],
+      "superadmin": []
+    }
+  endparse_json
+  assign can = false
+  for role in profile.roles
+    if permissions[role] contains 'article.create'
+      assign can = true
+      break
+    endif
+  endfor
+%}
 ```
+
+Also verify the user's roles are stored correctly as a `property_array`:
 
 ### "403 error on admin pages after deploying updated permissions"
 
-**Cause:** The override file at `app/modules/user/public/lib/queries/role_permissions/permissions.liquid` has a syntax error (invalid JSON in `parse_json`) or is missing the updated role.
+**Cause:** The inline permissions `parse_json` block has a syntax error (invalid JSON) or is missing the updated role. If using `authorization_policies/`, the policy file may have a logic error.
 
 **Solution:** Validate the JSON inside `parse_json` carefully. Test by logging the output:
 
 ```liquid
-{% log data, type: 'debug' %}
+{% log permissions, type: 'debug' %}
 ```
+
+For authorization policies, verify the policy returns `true` or `false` correctly by testing with `{% log %}` inside the policy file.
 
 ### "sign_in tag has no effect"
 
@@ -70,11 +96,31 @@ Common errors and platform constraints when working with authentication and auth
 {% sign_in user_id: user.id, timeout_in_minutes: 1440 %}
 ```
 
-### "authorization_policies/ files are ignored"
+### "authorization_policies/ not working as expected"
 
-**Cause:** Insites supports `authorization_policies/` as a legacy feature, but the pos-module-user system does not use them. Mixing both systems causes unpredictable behavior.
+**Cause:** Authorization policies must return `true` or `false`. Common issues include: not loading the user profile inside the policy, returning a string instead of a boolean, or a typo in the policy name referenced in front matter.
 
-**Solution:** Remove all files from `app/authorization_policies/` and use `modules/user/helpers/can_do` exclusively.
+**Solution:** Ensure your policy loads the profile and returns a boolean:
+
+```liquid
+{% comment %} app/authorization_policies/require_login.liquid {% endcomment %}
+---
+name: require_login
+---
+{% liquid
+  if context.current_user
+    return true
+  endif
+  return false
+%}
+```
+
+And reference it correctly in the page front matter (use the `name` value, not the filename):
+
+```yaml
+authorization_policies:
+  - require_login
+```
 
 ## Limits
 

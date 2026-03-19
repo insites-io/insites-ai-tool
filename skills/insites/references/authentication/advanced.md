@@ -1,25 +1,45 @@
 # Authentication -- Advanced Topics
 
-Edge cases, complex scenarios, and advanced patterns for the pos-module-user authentication system.
+Edge cases, complex scenarios, and advanced patterns for the authentication system.
 
 ## Custom Permission Logic
 
-The default permission system uses a flat role-to-actions mapping. For more complex rules (e.g., ownership checks, time-based access), wrap the helpers in a custom partial.
+The default permission system uses a flat role-to-actions mapping. For more complex rules (e.g., ownership checks, time-based access), create custom partials that combine role checks with additional logic.
 
 ### Ownership-based access
 
 ```liquid
 {% comment %} app/views/partials/lib/helpers/can_edit_own.liquid {% endcomment %}
 {% liquid
-  function can = 'modules/user/helpers/can_do', requester: requester, do: do
-  if can
-    return true
-  endif
-
   if requester == blank
     return false
   endif
 
+  comment Check if user has the required role/permission
+  parse_json permissions
+    {
+      "admin": ["products.update", "products.create", "products.delete"],
+      "editor": ["products.update"],
+      "superadmin": []
+    }
+  endparse_json
+  assign has_permission = false
+  for role in requester.roles
+    if role == 'superadmin'
+      assign has_permission = true
+      break
+    endif
+    if permissions[role] contains do
+      assign has_permission = true
+      break
+    endif
+  endfor
+
+  if has_permission
+    return true
+  endif
+
+  comment Fall back to ownership check
   if object.user_id == requester.id
     return true
   endif
@@ -43,8 +63,36 @@ Usage:
 ```liquid
 {% comment %} app/views/partials/lib/helpers/can_do_during_hours.liquid {% endcomment %}
 {% liquid
-  function can = 'modules/user/helpers/can_do', requester: requester, do: do
-  unless can
+  if requester == blank
+    return false
+  endif
+
+  comment Check role-based permission first
+  assign has_permission = false
+  for role in requester.roles
+    if role == 'superadmin'
+      assign has_permission = true
+      break
+    endif
+  endfor
+
+  unless has_permission
+    parse_json permissions
+      {
+        "admin": ["products.update", "products.create", "products.delete"],
+        "editor": ["products.update"],
+        "superadmin": []
+      }
+    endparse_json
+    for role in requester.roles
+      if permissions[role] contains do
+        assign has_permission = true
+        break
+      endif
+    endfor
+  endunless
+
+  unless has_permission
     return false
   endunless
 
@@ -58,36 +106,56 @@ Usage:
 
 ## Multi-Role Users
 
-The default module stores a single role string per user. To support multiple roles, store them as a JSON array in a custom property and write a wrapper.
+Roles are stored as a `property_array` on user records, so users natively support multiple roles. The GraphQL query returns them as an array:
 
-### Schema for multi-role
+```graphql
+query current($id: ID!) {
+  users(per_page: 1, filter: { id: { value: $id } }) {
+    results {
+      id
+      email
+      roles: property_array(name: "roles")
+    }
+  }
+}
+```
 
-```yaml
-# app/schema/user_profile.yml
-properties:
-  - name: roles
-    type: array
-    items:
-      type: string
+### Assigning multiple roles
+
+```graphql
+mutation set_roles($id: ID!) {
+  user_update(id: $id, user: {
+    properties: [{ name: "roles", value_array: ["admin", "editor"] }]
+  }) {
+    id
+  }
+}
 ```
 
 ### Multi-role permission check
 
+This iterates all of the user's roles and checks each against the permissions map:
+
 ```liquid
-{% comment %} app/views/partials/lib/helpers/can_do_multi_role.liquid {% endcomment %}
+{% comment %} app/views/partials/lib/helpers/check_permission.liquid {% endcomment %}
 {% liquid
   if requester == blank
     return false
   endif
 
-  assign roles = requester.properties.roles
-  if roles == blank
+  if requester.roles == blank
     return false
   endif
 
-  function permissions = 'modules/user/queries/role_permissions/permissions'
+  parse_json permissions
+    {
+      "admin": ["products.create", "products.update", "products.delete"],
+      "editor": ["products.create", "products.update"],
+      "superadmin": []
+    }
+  endparse_json
 
-  for role in roles
+  for role in requester.roles
     if role == 'superadmin'
       return true
     endif
@@ -121,7 +189,11 @@ slug: auth/callback
   function result = 'lib/commands/auth/exchange_code', code: context.params.code
 
   if result.error
-    include 'modules/core/helpers/redirect_to', url: '/login', alert: 'app.auth.oauth_failed'
+    parse_json flash
+      { "alert": "app.auth.oauth_failed", "from": {{ context.location.pathname | json }} }
+    endparse_json
+    session sflash = flash
+    redirect_to '/login'
     break
   endif
 
@@ -134,7 +206,11 @@ slug: auth/callback
   endif
 
   sign_in user_id: user.id, timeout_in_minutes: 1440
-  include 'modules/core/helpers/redirect_to', url: '/', notice: 'app.auth.welcome'
+  parse_json flash
+    { "notice": "app.auth.welcome", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/'
 %}
 ```
 
@@ -202,14 +278,40 @@ Allow superadmins to sign in as another user for debugging:
 ---
 slug: admin/impersonate
 method: post
+authorization_policies:
+  - require_superadmin
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'admin.impersonate'
+  assign target_id = context.params.user_id
+  sign_in user_id: target_id, timeout_in_minutes: 30
+  redirect_to '/'
+%}
+```
+
+Or with an inline guard:
+
+```liquid
+---
+slug: admin/impersonate
+method: post
+---
+{% liquid
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+
+  unless profile and profile.roles contains 'superadmin'
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
 
   assign target_id = context.params.user_id
   sign_in user_id: target_id, timeout_in_minutes: 30
-  include 'modules/core/helpers/redirect_to', url: '/', notice: 'app.admin.impersonating'
+  redirect_to '/'
 %}
 ```
 
@@ -226,7 +328,10 @@ Insites does not have built-in rate limiting for login. Implement it using a rec
   assign count = attempts.records.results.first.properties.count | default: 0 | plus: 0
 
   if count >= 5
-    include 'modules/core/helpers/flash/publish', alert: 'app.auth.too_many_attempts'
+    parse_json flash
+      { "alert": "app.auth.too_many_attempts", "from": {{ context.location.pathname | json }} }
+    endparse_json
+    session sflash = flash
     render 'sessions/form'
     break
   endif
@@ -235,7 +340,10 @@ Insites does not have built-in rate limiting for login. Implement it using a rec
 
   if user.user == blank
     graphql _ = 'auth/increment_attempts', email: context.params.email
-    include 'modules/core/helpers/flash/publish', alert: 'app.sessions.invalid_credentials'
+    parse_json flash
+      { "alert": "app.sessions.invalid_credentials", "from": {{ context.location.pathname | json }} }
+    endparse_json
+    session sflash = flash
     render 'sessions/form'
     break
   endif

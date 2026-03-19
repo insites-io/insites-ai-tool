@@ -12,7 +12,7 @@ insites-cli deploy production
 ```
 
 Deployment process:
-1. Validates with platformos-check
+1. Validates with insites-cli audit
 2. Syncs all files
 3. Executes pending migrations
 4. Applies schema updates
@@ -53,7 +53,7 @@ insites-cli sync staging --watch --filter "app/views"
 Runs automatically:
 
 ```bash
-platformos-check
+insites-cli audit
 ```
 
 Validates:
@@ -199,7 +199,7 @@ insites-cli deploy production
 ### Deployment Validation in CI
 
 ```bash
-platformos-check
+insites-cli audit
 insites-cli test run staging
 insites-cli deploy production
 ```

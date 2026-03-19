@@ -6,49 +6,35 @@ The Events-Consumers API provides methods for publishing events and handling the
 
 ## Publishing Events
 
-### modules/core/commands/events/publish
+### Using the background tag
 
-Publishes an event that triggers all matching consumer handlers asynchronously.
+Publish events by wrapping consumer calls in a `{% background %}` tag. This dispatches consumers asynchronously.
 
 #### Syntax
 
 ```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'event_type_string',
-    object: object_or_hash
--%}
+{%- background source_name: 'event:event_type_string', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Consumer logic here {% endcomment %}
+{%- endbackground -%}
 ```
 
 #### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `type` | String | Yes | Event type identifier (snake_case). Must match consumer directory names. |
-| `object` | Object/Hash | Yes | Event data payload. Available to consumers via `event.object`. |
+| `source_name` | String | Yes | Identifier for the background job (convention: `event:event_type`). |
+| `priority` | String | No | `default` or `high`. Controls queue priority. |
+| `max_attempts` | Integer | No | Number of retry attempts on failure. |
 
 #### Examples
 
 **Basic event publishing:**
 
 ```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: new_user
--%}
-```
-
-**With inline object:**
-
-```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'order_created',
-    object: {
-      id: order.id,
-      total: order.total,
-      customer_id: customer.id,
-      items: order.items
-    }
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: new_user -%}
+  {%- function _ = 'lib/consumers/user_created/create_user_profile', event: new_user -%}
+{%- endbackground -%}
 ```
 
 **After model operation:**
@@ -69,10 +55,9 @@ Publishes an event that triggers all matching consumer handlers asynchronously.
 {%- endgraphql -%}
 
 {%- if g.user_create.user -%}
-  {%- include 'modules/core/commands/events/publish',
-      type: 'user_created',
-      object: g.user_create.user
-  -%}
+  {%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+    {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: g.user_create.user -%}
+  {%- endbackground -%}
 {%- endif -%}
 ```
 
@@ -92,19 +77,16 @@ Inside consumer handlers, two variables are available:
 When publishing:
 
 ```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'order_created',
-    object: {
-      id: 12345,
-      status: 'pending',
-      total: '99.99',
-      currency: 'USD',
-      customer: {
-        id: 456,
-        email: 'customer@example.com'
-      }
-    }
--%}
+{%- background source_name: 'event:order_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%}
+  Consumers receive the order data. Example:
+  event.object.id = 12345
+  event.object.status = 'pending'
+  event.object.total = '99.99'
+  event.object.customer.email = 'customer@example.com'
+  {%- endcomment -%}
+  {%- function _ = 'lib/consumers/order_created/send_order_confirmation', event: order -%}
+{%- endbackground -%}
 ```
 
 Available in consumer:
@@ -161,10 +143,9 @@ Handler logic:
 - Log events
 {%- endcomment -%}
 
-{%- include 'modules/core/commands/mail/send',
+{%- graphql _ = 'emails/send_order_confirmation',
     to: customer_email,
-    template: 'order_confirmation',
-    variables: event.object
+    order_id: event.object.id
 -%}
 ```
 
@@ -184,10 +165,11 @@ consumers/
 All files execute when `payment_succeeded` event is published:
 
 ```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'payment_succeeded',
-    object: payment_record
--%}
+{%- background source_name: 'event:payment_succeeded', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/payment_succeeded/send_payment_receipt', event: payment_record -%}
+  {%- function _ = 'lib/consumers/payment_succeeded/update_order_status', event: payment_record -%}
+  {%- function _ = 'lib/consumers/payment_succeeded/trigger_fulfillment', event: payment_record -%}
+{%- endbackground -%}
 ```
 
 ## Context Available in Consumers
@@ -269,5 +251,4 @@ Check platform documentation for:
 - [Events-Consumers Patterns](/references/events-consumers/patterns.md)
 - [Events-Consumers Gotchas](/references/events-consumers/gotchas.md)
 - [Events-Consumers Advanced](/references/events-consumers/advanced.md)
-- Core Module: `modules/core/commands/events/publish`
-- Core Module: `modules/core/commands/mail/send`
+- Event publishing uses the `{% background %}` tag directly

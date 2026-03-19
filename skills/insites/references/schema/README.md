@@ -2,6 +2,8 @@
 
 Schema files define your data models in Insites. Each YAML file in `app/schema/` becomes a database table backed by PostgreSQL and ElasticSearch, accessible exclusively through GraphQL.
 
+> **Module path:** When building a module, use `modules/<module_name>/public/schema/` for schema definitions. Module schemas are always public so the app and other modules can query the data.
+
 ## Key Purpose
 
 Schema files are the **only** way to define persistent data structures in Insites. They replace traditional database migrations for table creation. Each schema file declares a table name and its properties (columns), and the platform handles all underlying database provisioning.

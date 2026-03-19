@@ -11,8 +11,7 @@ Common workflows and real-world patterns for authentication and authorization in
 slug: sessions/new
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  if profile
+  if context.current_user
     redirect_to '/'
     break
   endif
@@ -47,13 +46,20 @@ method: post
   graphql user = 'users/authenticate', email: context.params.email, password: context.params.password
 
   if user.user == blank
-    include 'modules/core/helpers/flash/publish', alert: 'app.sessions.invalid_credentials'
+    parse_json flash
+      { "alert": "app.sessions.invalid_credentials", "from": {{ context.location.pathname | json }} }
+    endparse_json
+    session sflash = flash
     render 'sessions/form'
     break
   endif
 
   sign_in user_id: user.user.id, timeout_in_minutes: 1440
-  include 'modules/core/helpers/redirect_to', url: '/', notice: 'app.sessions.signed_in'
+  parse_json flash
+    { "notice": "app.sessions.signed_in", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/'
 %}
 ```
 
@@ -66,7 +72,11 @@ method: delete
 ---
 {% liquid
   sign_out
-  include 'modules/core/helpers/redirect_to', url: '/', notice: 'app.sessions.signed_out'
+  parse_json flash
+    { "notice": "app.sessions.signed_out", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/'
 %}
 ```
 
@@ -97,48 +107,114 @@ method: post
   endif
 
   sign_in user_id: result.id, timeout_in_minutes: 1440
-  include 'modules/core/helpers/redirect_to', url: '/', notice: 'app.registrations.welcome'
+  parse_json flash
+    { "notice": "app.registrations.welcome", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/'
 %}
 ```
 
 ## Page Guard Pattern
 
-The most common auth pattern: protect a page by checking permissions at the top.
+The most common auth pattern: protect a page so only authorized users can access it.
+
+### Option 1: Authorization policy (preferred for full-page guards)
+
+Define a policy file:
 
 ```liquid
+{% comment %} app/authorization_policies/require_admin.liquid {% endcomment %}
+---
+name: require_admin
+---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'admin.view', redirect_anonymous_to_login: true
+  if context.current_user == blank
+    return false
+  endif
+
+  graphql g = 'users/current', id: context.current_user.id
+  assign profile = g.users.results.first
+
+  if profile.roles contains 'admin' or profile.roles contains 'superadmin'
+    return true
+  endif
+
+  return false
 %}
 ```
 
-### Guard with custom redirect
+Reference it in the page front matter:
+
+```liquid
+---
+slug: admin/dashboard
+authorization_policies:
+  - require_admin
+---
+{% comment %} Page content here -- only renders if policy passes {% endcomment %}
+```
+
+### Option 2: Inline guard
 
 ```liquid
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_redirect', requester: profile, do: 'orders.view', return_url: '/login'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+
+  unless profile and profile.roles contains 'admin'
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
+%}
+```
+
+### Guard with login redirect for anonymous users
+
+```liquid
+{% liquid
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    redirect_to '/sign-in?return_to=' | append: context.location.pathname
+    break
+  endif
+
+  unless profile.roles contains 'admin'
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
 %}
 ```
 
 ## Conditional UI Based on Role
 
-Show or hide elements depending on what the user can do.
+Show or hide elements depending on the user's roles.
 
 ```liquid
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  function can_edit = 'modules/user/helpers/can_do', requester: profile, do: 'products.update'
-  function can_delete = 'modules/user/helpers/can_do', requester: profile, do: 'products.delete'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
 %}
 
 <h1>{{ product.title }}</h1>
 
-{% if can_edit %}
+{% if profile.roles contains 'admin' or profile.roles contains 'editor' %}
   <a href="/products/{{ product.id }}/edit">Edit</a>
 {% endif %}
 
-{% if can_delete %}
+{% if profile.roles contains 'admin' %}
   <form method="post" action="/products/{{ product.id }}">
     <input type="hidden" name="authenticity_token" value="{{ context.authenticity_token }}">
     <input type="hidden" name="_method" value="delete">
@@ -151,20 +227,67 @@ Show or hide elements depending on what the user can do.
 
 An entire area restricted to admin users.
 
-### Admin layout guard
+### Option A: Authorization policy (cleanest)
+
+```liquid
+{% comment %} app/authorization_policies/require_admin.liquid {% endcomment %}
+---
+name: require_admin
+---
+{% liquid
+  if context.current_user == blank
+    return false
+  endif
+  graphql g = 'users/current', id: context.current_user.id
+  assign profile = g.users.results.first
+  if profile.roles contains 'admin' or profile.roles contains 'superadmin'
+    return true
+  endif
+  return false
+%}
+```
+
+Every admin page references the policy:
+
+```liquid
+---
+slug: admin/users
+authorization_policies:
+  - require_admin
+---
+{% liquid
+  graphql g = 'users/current', id: context.current_user.id
+  assign profile = g.users.results.first
+  graphql users = 'admin/users/list'
+  render 'admin/users/index', users: users.records.results, profile: profile
+%}
+```
+
+### Option B: Shared guard partial
 
 Place the check in a shared partial rendered at the top of every admin page:
 
 ```liquid
 {% comment %} app/views/partials/admin/guard.liquid {% endcomment %}
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'admin.view', redirect_anonymous_to_login: true
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+
+  unless profile and profile.roles contains 'admin'
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
+
   return profile
 %}
 ```
 
-### Admin page using the guard
+### Admin page using the guard partial
 
 ```liquid
 ---
@@ -179,24 +302,59 @@ slug: admin/users
 
 ## Multi-Role Permission Check
 
-Check multiple permissions and pass results to a partial:
+Check multiple permissions using the permissions map and pass results to a partial:
 
 ```liquid
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  function can_create = 'modules/user/helpers/can_do', requester: profile, do: 'products.create'
-  function can_export = 'modules/user/helpers/can_do', requester: profile, do: 'products.export'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+
+  assign can_create = false
+  assign can_export = false
+
+  if profile
+    for role in profile.roles
+      if role == 'superadmin'
+        assign can_create = true
+        assign can_export = true
+        break
+      endif
+    endfor
+
+    unless can_create
+      parse_json permissions
+        {
+          "admin": ["products.create", "products.update", "products.delete", "products.export"],
+          "editor": ["products.create", "products.update"],
+          "superadmin": []
+        }
+      endparse_json
+      for role in profile.roles
+        if permissions[role] contains 'products.create'
+          assign can_create = true
+        endif
+        if permissions[role] contains 'products.export'
+          assign can_export = true
+        endif
+      endfor
+    endunless
+  endif
+
   render 'products/toolbar', can_create: can_create, can_export: can_export
 %}
 ```
 
 ## Best Practices
 
-1. **Always fetch the profile first** -- every protected page starts with `queries/user/current`
-2. **Authenticate before fetching data** -- check permissions before running GraphQL queries
-3. **Use `can_do_or_unauthorized` for pages** -- it handles both 403 and login redirect
-4. **Use `can_do` for UI toggles** -- conditionally show buttons and links
-5. **Never check roles directly** -- always check action strings so the permission matrix stays the single source of truth
+1. **Always load the profile from `context.current_user`** -- every protected page starts by checking `context.current_user` and loading the full profile with roles via GraphQL
+2. **Use `authorization_policies/` for full-page guards** -- this is the cleanest, most maintainable approach
+3. **Use inline role checks for conditional UI** -- `profile.roles contains 'role'` for showing/hiding elements
+4. **Authenticate before fetching data** -- check permissions before running GraphQL queries
+5. **Use the permissions map for fine-grained actions** -- when simple role checks are not enough, use a permissions JSON map
 6. **Keep action strings consistent** -- use `resource.verb` format (e.g., `products.create`, `orders.view`)
 7. **Redirect after sign-in/sign-out** -- always redirect to prevent form resubmission
 8. **Include CSRF token** -- every non-GET form must have the `authenticity_token` field

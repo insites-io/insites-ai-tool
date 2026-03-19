@@ -2,6 +2,8 @@
 
 All data access in Insites goes through GraphQL. The schema is strict and closed -- you cannot create custom types. GraphQL files live in `app/graphql/` and are invoked from pages using the `{% graphql %}` Liquid tag.
 
+> **Module path:** When building a module, use `modules/<module_name>/public/graphql/` for GraphQL files accessible to the app and other modules, or `modules/<module_name>/private/graphql/` for GraphQL files only used within the module.
+
 ## Key Purpose
 
 GraphQL is the **exclusive** data access layer in Insites. There is no direct SQL, no ORM, no REST API for data. Every read, write, update, and delete flows through GraphQL operations. The platform provides a fixed set of root types (`records`, `record_create`, `record_update`, `record_delete`, `users`, etc.) and property accessors to read typed values from records.

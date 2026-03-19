@@ -30,6 +30,8 @@ app/
 - Each file contains **one** GraphQL operation (query or mutation).
 - The file path (without extension) becomes the invocation name: `app/graphql/products/search.graphql` is invoked as `'products/search'`.
 
+> **Module path:** In modules, GraphQL files live in `modules/<module_name>/public/graphql/` (accessible to app and other modules) or `modules/<module_name>/private/graphql/` (internal only). The invocation path remains relative — do not include the module directory prefix.
+
 ## Invocation Syntax
 
 ### Named file invocation (recommended)

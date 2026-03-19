@@ -59,15 +59,7 @@ Store multiple values in a compressed format:
 
 Share sessions across subdomains:
 
-```yaml
-# .pos file configuration
-sessions:
-  domain: 'example.com'
-  same_site: 'None'
-  secure: true
-```
-
-Use consistent domain setting across all subdomains.
+Cross-domain session sharing is managed through the Insites admin portal, not the `.insites` file. Configure domain, same_site, and secure settings in the instance dashboard. Use consistent domain settings across all subdomains.
 
 ## Session State Machine
 

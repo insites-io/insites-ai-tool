@@ -1,142 +1,185 @@
 # Commands -- API Reference
 
-## Core Module Helpers
+## Command Stages
 
-All command helpers are provided by `pos-module-core` and called via the `{% function %}` tag.
+Commands use three inline stages -- build, check, execute -- implemented directly in each command file. No external module is required.
 
-### `modules/core/commands/build`
+### Build Stage
 
-Initializes the command object, adding metadata fields (`valid`, `errors`).
-
-```liquid
-{% function object = 'modules/core/commands/build', object: object %}
-```
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `object` | Hash | Yes | The raw data hash built via `parse_json` |
-
-**Returns:** Hash with original fields plus `valid: true` and `errors: {}`.
-
-### `modules/core/commands/check`
-
-Validates the object against an array of validator definitions.
+The build stage is a `parse_json` block that whitelists input fields into a clean object. This IS the build step -- there is no separate helper to call.
 
 ```liquid
-{% function object = 'modules/core/commands/check', object: object, validators: validators %}
+{% comment %} === BUILD === {% endcomment %}
+{% parse_json object %}
+  {
+    "title": {{ title | json }},
+    "price": {{ price | json }}
+  }
+{% endparse_json %}
 ```
 
-**Parameters:**
+**Result:** A hash containing only the whitelisted fields.
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `object` | Hash | Yes | Object from the build stage |
-| `validators` | Array | Yes | JSON array of validator hashes |
+### Check Stage
 
-**Returns:** Object with `valid` set to `false` and `errors` populated if any validation fails.
-
-### `modules/core/commands/execute`
-
-Persists the object by running a GraphQL mutation.
+The check stage initializes a validation contract and runs app-level validator helpers against the object.
 
 ```liquid
-{% function object = 'modules/core/commands/execute',
-  mutation_name: 'products/create',
-  selection: 'record_create',
-  object: object
-%}
+{% comment %} === CHECK === {% endcomment %}
+{% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
+
+{% if object.title == blank %}
+  {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['title'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% if object.price == blank %}
+  {% assign field_errors = c.errors.price | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['price'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% assign object = object | hash_merge: c %}
 ```
 
-**Parameters:**
+**Result:** Object with `valid` set to `false` and `errors` populated if any validation fails; otherwise `valid: true` and `errors: {}`.
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `mutation_name` | String | Yes | Path to `.graphql` file (relative to `app/graphql/`) |
-| `selection` | String | Yes | Top-level field name in the mutation response (e.g., `record_create`) |
-| `object` | Hash | Yes | Validated object from the check stage |
+### Execute Stage
 
-**Returns:** Object with `id`, `created_at`, and other fields merged from the mutation response.
-
-### `modules/core/commands/events/publish`
-
-Publishes an event after a successful command execution.
+The execute stage persists the object by running a GraphQL mutation inline.
 
 ```liquid
-{% function _ = 'modules/core/commands/events/publish', type: 'product_created', object: object %}
+{% comment %} === EXECUTE === {% endcomment %}
+{% if object.valid %}
+  {% graphql r = 'products/create', args: object %}
+  {% if r.errors %}
+    {% log r, type: 'ERROR: products/create' %}
+  {% endif %}
+  {% assign object = r.record_create %}
+  {% hash_assign object['valid'] = true %}
+{% endif %}
 ```
 
-**Parameters:**
+**Key details:**
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `type` | String | Yes | Event type identifier (matches consumer directory name) |
-| `object` | Hash | Yes | Data payload available to consumers as `event.object` |
+| Element | Description |
+|---------|-------------|
+| `'products/create'` | Path to `.graphql` file relative to `app/graphql/` |
+| `args: object` | Passes the entire object hash as GraphQL variables |
+| `r.record_create` | Top-level field in the mutation response (matches the mutation operation, e.g., `record_create`, `record_update`, `record_delete`) |
 
-**Returns:** Ignored (assign to `_`).
+**Result:** Object with `id`, `created_at`, and other fields from the mutation response, plus `valid: true`.
 
-## Validator Definitions
+### Event Publishing
 
-Validators are defined as a JSON array of hashes. Each hash requires `name` and `property` at minimum.
+After a successful execute, you can dispatch background jobs to trigger side effects:
 
-### `presence`
+```liquid
+{% if object.valid %}
+  {% graphql r = 'products/create', args: object %}
+  {% assign object = r.record_create %}
+  {% hash_assign object['valid'] = true %}
+
+  {% comment %} Dispatch side effects as background jobs {% endcomment %}
+  {% background source_name: 'event:product_created', priority: 'default', max_attempts: 3 %}
+    {% function _ = 'lib/consumers/product_created/send_notification', event: object %}
+  {% endbackground %}
+{% endif %}
+```
+
+## Inline Validation Patterns
+
+Validations are written inline in the check stage of each command. Below are the common patterns you can copy and adapt.
+
+### Presence Check
 
 Field must not be blank, null, or empty string.
 
-```json
-{ "name": "presence", "property": "title" }
+```liquid
+{% if object.title == blank %}
+  {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['title'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
 ```
 
-### `numericality`
+### Uniqueness Check
+
+Field must be unique within a specified table. Issues a database query.
+
+```liquid
+{% graphql r = 'records/count', property_name: 'email', property_value: object.email, table: 'user' %}
+{% if r.records.total_entries > 0 %}
+  {% assign field_errors = c.errors.email | default: '[]' | parse_json | add_to_array: "is already taken" %}
+  {% hash_assign c['errors']['email'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+```
+
+### Numericality Check
 
 Field must be a valid number.
 
-```json
-{ "name": "numericality", "property": "price" }
+```liquid
+{% assign price_num = object.price | plus: 0 %}
+{% if object.price == blank or price_num == 0 and object.price != '0' %}
+  {% assign field_errors = c.errors.price | default: '[]' | parse_json | add_to_array: "is not a number" %}
+  {% hash_assign c['errors']['price'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
 ```
 
-### `uniqueness`
-
-Field must be unique within the specified table.
-
-```json
-{ "name": "uniqueness", "property": "email", "options": { "table": "user_profile" } }
-```
-
-### `length`
+### Length Check
 
 Field string length must fall within constraints.
 
-```json
-{ "name": "length", "property": "title", "options": { "minimum": 3, "maximum": 255 } }
+```liquid
+{% assign title_size = object.title | size %}
+{% if title_size < 3 or title_size > 255 %}
+  {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "must be between 3 and 255 characters" %}
+  {% hash_assign c['errors']['title'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
 ```
 
-### `format`
+### Format Check
 
 Field must match a regular expression.
 
-```json
-{ "name": "format", "property": "slug", "options": { "pattern": "^[a-z0-9-]+$" } }
+```liquid
+{% assign slug_match = object.slug | matches: '^[a-z0-9-]+$' %}
+{% if slug_match != true %}
+  {% assign field_errors = c.errors.slug | default: '[]' | parse_json | add_to_array: "has an invalid format" %}
+  {% hash_assign c['errors']['slug'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
 ```
 
-### `inclusion`
+### Inclusion Check
 
 Field value must be in a predefined list.
 
-```json
-{ "name": "inclusion", "property": "status", "options": { "values": ["draft", "published", "archived"] } }
+```liquid
+{% assign allowed = 'draft,published,archived' | split: ',' %}
+{% unless allowed contains object.status %}
+  {% assign field_errors = c.errors.status | default: '[]' | parse_json | add_to_array: "is not included in the list" %}
+  {% hash_assign c['errors']['status'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endunless %}
 ```
 
-### `confirmation`
+### Confirmation Check
 
 Two fields must match (e.g., password and password confirmation).
 
-```json
-{ "name": "confirmation", "property": "password" }
+```liquid
+{% if object.password != object.password_confirmation %}
+  {% assign field_errors = c.errors.password_confirmation | default: '[]' | parse_json | add_to_array: "doesn't match password" %}
+  {% hash_assign c['errors']['password_confirmation'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
 ```
-
-This expects a corresponding `password_confirmation` field in the object.
 
 ## Result Object Structure
 
@@ -159,8 +202,8 @@ On validation failure:
   "price": null,
   "valid": false,
   "errors": {
-    "title": ["app.errors.blank"],
-    "price": ["app.errors.blank", "app.errors.not_a_number"]
+    "title": ["can't be blank"],
+    "price": ["can't be blank", "is not a number"]
   }
 }
 ```
@@ -180,6 +223,6 @@ Parameters are passed as named arguments and become local variables inside the c
 - [README.md](README.md) -- Commands overview
 - [configuration.md](configuration.md) -- File layout and naming
 - [patterns.md](patterns.md) -- Real-world usage examples
-- [gotchas.md](gotchas.md) -- Common API misuse and error messages
-- [advanced.md](advanced.md) -- Advanced validator combinations and custom validators
+- [gotchas.md](gotchas.md) -- Common mistakes and error messages
+- [advanced.md](advanced.md) -- Custom validators and advanced patterns
 - [Liquid Tags](../liquid/tags/) -- `function`, `parse_json`, and other tag references

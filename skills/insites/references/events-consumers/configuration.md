@@ -4,6 +4,8 @@
 
 Events-Consumers in Insites provide an asynchronous messaging system for handling side effects and decoupling business logic. This guide covers the directory structure, naming conventions, and configuration patterns.
 
+> **Module path:** In modules, events live in `modules/<module_name>/public/lib/events/` (subscribable by other modules) or `modules/<module_name>/private/lib/events/` (internal). Consumers typically go in `modules/<module_name>/private/lib/consumers/`.
+
 ## Directory Structure
 
 ```
@@ -121,9 +123,8 @@ Each consumer should handle **one responsibility**:
 ```liquid
 {%- comment -%}GOOD: Single responsibility{%- endcomment -%}
 {%- comment -%}File: send_welcome_email.liquid{%- endcomment -%}
-{%- include 'modules/core/commands/mail/send',
-    to: event.object.email,
-    template: 'welcome_email'
+{%- graphql _ = 'emails/send_welcome',
+    to: event.object.email
 -%}
 ```
 
@@ -133,9 +134,10 @@ Pass structured data when publishing events:
 
 ```liquid
 {%- comment -%}Event publication with rich object{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: user -%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: user -%}
+  {%- function _ = 'lib/consumers/user_created/create_user_profile', event: user -%}
+{%- endbackground -%}
 ```
 
 ### 3. Document Event Contracts
@@ -164,4 +166,4 @@ Expects event.object with properties:
 - [Events-Consumers API](/references/events-consumers/api.md)
 - [Events-Consumers Patterns](/references/events-consumers/patterns.md)
 - [Events-Consumers Gotchas](/references/events-consumers/gotchas.md)
-- Core Module Events: `modules/core/commands/events/publish`
+- Event publishing uses the `{% background %}` tag directly

@@ -18,6 +18,8 @@ Should be: app/views/pages/products/:id.liquid ✓
 NOT: app/views/pages/product/:id.liquid ✗
 ```
 
+> **Module note:** Module pages in `modules/<module_name>/public/views/pages/` are also mapped to routes. If a route isn't matching, check both `app/views/pages/` and any installed module's `public/views/pages/`.
+
 Verify directory structure matches URL hierarchy:
 
 ```

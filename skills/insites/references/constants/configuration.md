@@ -16,7 +16,7 @@ insites-cli constants set --name CONSTANT_NAME --value "constant_value" ENVIRONM
 |------------|--------|----------|--------------------------------------|
 | `--name`   | String | Yes      | Constant name (UPPER_SNAKE_CASE)     |
 | `--value`  | String | Yes      | Constant value (quote if it contains spaces) |
-| ENVIRONMENT | String | Yes     | Target environment from `.pos` file  |
+| ENVIRONMENT | String | Yes     | Target environment from `.insites` file  |
 
 ```bash
 insites-cli constants set --name STRIPE_SK_KEY --value "sk_test_abc123" dev
@@ -146,7 +146,7 @@ Constants have no file on disk. They are stored server-side per environment. The
 
 ```
 project-root/
-├── .pos                              # Environment endpoints (where CLI connects)
+├── .insites                              # Environment endpoints (where CLI connects)
 ├── app/
 │   ├── graphql/
 │   │   └── constants/
@@ -162,5 +162,5 @@ project-root/
 - [Constants API](api.md) -- runtime access via `context.constants`
 - [Constants Patterns](patterns.md) -- workflows for multi-environment setups
 - [Constants Gotchas](gotchas.md) -- common errors and limits
-- [Configuration Reference](../configuration/README.md) -- `.pos` and `app/config.yml`
+- [Configuration Reference](../configuration/README.md) -- `.insites` and `app/config.yml`
 - [CLI Reference](../cli/README.md) -- full `insites-cli` command reference

@@ -2,8 +2,8 @@
 
 ## Pre-Deployment Checklist
 
-1. Run `platformos-check` — must pass with 0 errors
-2. Run tests: `insites-cli test run staging`
+1. Run `insites-cli audit` — must pass with 0 errors
+2. Run tests: `insites-cli test run staging` *(under development -- not yet available)*
 3. Verify all changes work on staging
 4. Review any pending migrations
 
@@ -37,13 +37,20 @@ This watches for file changes and syncs them immediately. Do NOT use in producti
 
 ## Environment Setup
 
-### .pos file
-```yaml
-dev:
-  url: https://your-instance.staging.oregon.platform-os.com
-production:
-  url: https://your-instance.platform-os.com
+### .insites file (JSON)
+```json
+{
+  "dev": {
+    "instance_uuid": "uuid",
+    "token": "token",
+    "email": "dev@example.com",
+    "url": "https://your-instance.staging.oregon.platform-os.com",
+    "key": "key"
+  }
+}
 ```
+
+Generate with: `insites-cli env add dev --email dev@example.com --instance-uuid your-uuid`
 
 ## CI/CD
 
@@ -52,10 +59,8 @@ Example CI pipeline:
 ```bash
 # 1. Install tools
 npm install -g /insites-cli
-npm install -g @platformos/platformos-check
-
 # 2. Lint
-platformos-check
+insites-cli audit
 
 # 3. Deploy to staging
 insites-cli deploy staging

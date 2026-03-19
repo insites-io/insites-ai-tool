@@ -54,7 +54,7 @@ Renders a partial template. Used in layouts for shared components.
 {% render 'shared/navigation' %}
 {% render 'shared/footer' %}
 {% render 'modules/common-styling/init' %}
-{% render 'modules/common-styling/toasts', params: flash %}
+{% render 'shared/toasts', params: flash %}
 ```
 
 | Parameter     | Type   | Description                                   |
@@ -67,8 +67,8 @@ Renders a partial template. Used in layouts for shared components.
 Calls a partial and captures its return value. Used in layouts for data retrieval (e.g., flash messages).
 
 ```liquid
-{% function flash = 'modules/core/commands/session/get', key: 'sflash' %}
-{% function _ = 'modules/core/commands/session/clear', key: 'sflash' %}
+{% assign flash = context.session.sflash | parse_json %}
+{% session sflash = null %}
 ```
 
 ### include
@@ -76,7 +76,7 @@ Calls a partial and captures its return value. Used in layouts for data retrieva
 Shares the parent scope with the included partial. Used sparingly in layouts.
 
 ```liquid
-{% include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'admin.access' %}
+{% comment %} Use authorization_policies in page front matter or inline checks instead {% endcomment %}
 ```
 
 ### liquid
@@ -85,11 +85,11 @@ Block form for writing multiple Liquid statements without repeating `{% %}` deli
 
 ```liquid
 {% liquid
-  function flash = 'modules/core/commands/session/get', key: 'sflash'
+  assign flash = context.session.sflash | parse_json
   if context.location.pathname != flash.from or flash.force_clear
-    function _ = 'modules/core/commands/session/clear', key: 'sflash'
+    session sflash = null
   endif
-  render 'modules/common-styling/toasts', params: flash
+  render 'shared/toasts', params: flash
 %}
 ```
 

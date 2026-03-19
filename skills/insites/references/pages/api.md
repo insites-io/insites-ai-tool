@@ -65,17 +65,8 @@ Calls a partial and captures its return value.
 ```
 
 ```liquid
-{% function profile = 'modules/user/queries/user/current' %}
 {% function valid = 'lib/commands/products/validate', params: context.params %}
 {% function slug = 'lib/helpers/slugify', text: product.title %}
-```
-
-### include
-
-Similar to `function` but shares the parent scope. Used primarily for module helpers.
-
-```liquid
-{% include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.edit' %}
 ```
 
 ### redirect_to
@@ -154,11 +145,17 @@ Page metadata from front matter:
 
 ### context.current_user
 
-Current authenticated user (if logged in):
+Current authenticated user (if logged in). Use this to check authentication and fetch the full profile via GraphQL:
 
 ```liquid
-{{ context.current_user.id }}
-{{ context.current_user.email }}
+{% liquid
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+%}
 ```
 
 ### context.authenticity_token

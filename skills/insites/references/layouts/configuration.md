@@ -6,6 +6,8 @@ This document covers all configuration options for layout files in `app/views/la
 
 All layouts live in `app/views/layouts/`. The filename (without extension) is the layout name referenced in page front matter.
 
+> **Module path:** In modules, layouts live in `modules/<module_name>/public/views/layouts/` or `modules/<module_name>/private/views/layouts/`. The layout name in page front matter works the same way.
+
 ```
 app/views/layouts/
 ├── application.liquid      # Default layout for all pages
@@ -90,11 +92,11 @@ Flash messages (toasts) are displayed via the layout, typically just before `</b
 
 ```liquid
 {% liquid
-  function flash = 'modules/core/commands/session/get', key: 'sflash'
+  assign flash = context.session.sflash | parse_json
   if context.location.pathname != flash.from or flash.force_clear
-    function _ = 'modules/core/commands/session/clear', key: 'sflash'
+    session sflash = null
   endif
-  render 'modules/common-styling/toasts', params: flash
+  render 'shared/toasts', params: flash
 %}
 ```
 
@@ -102,10 +104,10 @@ The `from` check ensures the flash is only shown on the intended page and cleare
 
 ### Flash message flow
 
-1. A page sets a flash: `function _ = 'modules/core/commands/session/set', key: 'sflash', value: 'Saved!', from: '/target'`
-2. The page redirects to `/target`
-3. The layout reads the flash from session
-4. If `pathname != flash.from`, the flash is cleared (prevents stale messages)
+1. A page sets a flash via `parse_json` and `session sflash = flash`
+2. The page redirects to the target path
+3. The layout reads the flash from `context.session.sflash | parse_json`
+4. If `pathname != flash.from`, the flash is cleared via `session sflash = null`
 5. The toast partial renders the notification
 
 ## Metadata in Layouts
@@ -145,11 +147,11 @@ Access page front matter metadata via `context.page.metadata`:
   {% render 'shared/footer' %}
 
   {% liquid
-    function flash = 'modules/core/commands/session/get', key: 'sflash'
+    assign flash = context.session.sflash | parse_json
     if context.location.pathname != flash.from or flash.force_clear
-      function _ = 'modules/core/commands/session/clear', key: 'sflash'
+      session sflash = null
     endif
-    render 'modules/common-styling/toasts', params: flash
+    render 'shared/toasts', params: flash
   %}
 
   {% yield 'footer_scripts' %}

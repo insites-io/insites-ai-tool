@@ -25,17 +25,9 @@ app/assets/
 
 ## Configuration Files
 
-### Asset Configuration in .pos File
+### Asset CDN Configuration
 
-The `.pos` file contains CDN endpoint configuration:
-
-```yaml
-environments:
-  staging:
-    url: 'https://staging-cdn.example.com'
-  production:
-    url: 'https://cdn.example.com'
-```
+The CDN endpoint is automatically determined by the platform based on your instance's `url` in the `.insites` file. There is no separate CDN configuration — the `asset_url` filter automatically generates the correct CDN URL for each environment.
 
 ### Asset Manifest (Optional)
 

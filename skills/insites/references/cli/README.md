@@ -1,6 +1,16 @@
-# insites-cli & platformos-check
+# insites-cli
 
 Command-line tools for Insites development.
+
+> **CLI COMMAND STATUS — read before using any CLI examples:**
+> - `insites-cli logs` → **does not exist**. Use `insites-cli logsv2` (alias: `l2`) instead.
+> - `insites-cli exec` → **not yet available** (under development). Do not suggest it.
+> - `insites-cli constants` → **not yet available** (under development). See `references/constants/`.
+> - `insites-cli test` → **not yet available** (under development). See `references/testing/`.
+> - `insites-cli cache` → **not yet available** (under development). See `references/caching/`.
+> - `insites-cli translations` → **not yet available** (under development). See `references/translations/`.
+> - `insites-cli sessions` → **not yet available** (under development). See `references/sessions/`.
+> - `insites-cli assets` → **not yet available** (under development). See `references/assets/`.
 
 ## insites-cli Commands
 
@@ -18,15 +28,16 @@ insites-cli gui serve dev                       # Start GraphQL GUI explorer
 
 ### Debugging
 ```bash
-insites-cli logs dev                            # Watch real-time logs
-insites-cli logs dev --filter type:error        # Filter error logs
+insites-cli logsv2 dev                          # Watch real-time logs (alias: l2)
+insites-cli logsv2 dev --filter type:error      # Filter error logs
 insites-cli exec liquid dev '<code>'            # Execute Liquid snippet
 insites-cli exec graphql dev '<query>'          # Execute GraphQL query
 ```
 
 ### Modules
 ```bash
-insites-cli modules install <name>              # Install a module
+insites-cli modules pull <name>               # Pull a module from instance
+insites-cli modules init <name>               # Initialize a new module
 insites-cli modules download <name>             # Download module source
 insites-cli modules list dev                    # List installed modules
 ```
@@ -56,13 +67,13 @@ insites-cli data clean dev                      # Clean all data (DANGEROUS)
 insites-cli test run staging                    # Run all tests
 ```
 
-## platformos-check (Linter)
+## Linting (insites-cli audit)
 
 **Must run after EVERY file change.**
 
 ```bash
-platformos-check                            # Lint all files
-platformos-check app/views/pages/           # Lint specific directory
+insites-cli audit                            # Lint all files
+insites-cli audit app/views/pages/           # Lint specific directory
 ```
 
 ### What it checks
@@ -78,19 +89,26 @@ platformos-check app/views/pages/           # Lint specific directory
 
 ## Environment Configuration
 
-### .pos file
-```yaml
-dev:
-  url: https://your-instance.staging.oregon.platform-os.com
-production:
-  url: https://your-instance.platform-os.com
+### .insites file (JSON)
+```json
+{
+  "dev": {
+    "instance_uuid": "uuid",
+    "token": "token",
+    "email": "dev@example.com",
+    "url": "https://your-instance.staging.oregon.platform-os.com",
+    "key": "key"
+  }
+}
 ```
+
+Generate with: `insites-cli env add dev --email dev@example.com --instance-uuid your-uuid`
 
 ## Debugging Workflow
 
 ```bash
 # Terminal 1: Watch logs
-insites-cli logs dev
+insites-cli logsv2 dev
 
 # Terminal 2: Make changes and observe
 insites-cli sync dev

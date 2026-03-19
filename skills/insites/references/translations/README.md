@@ -1,10 +1,14 @@
 # Translations (i18n)
 
+> **CLI STATUS:** `insites-cli translations` (list/languages/validate/export/import) is **not yet available** — this command is currently under development. Do not suggest any `insites-cli translations` subcommands to users. Translation files are managed by editing the YAML files in `app/translations/` directly and deploying.
+
 All user-facing text must use translations. NEVER hardcode text in partials.
 
 ## Location
 
 `app/translations/`
+
+> **Module path:** When building a module, use `modules/<module_name>/public/translations/` for translation files. Module translations are typically public so the app can override or extend them.
 
 ## File Structure
 

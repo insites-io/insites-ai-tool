@@ -114,10 +114,21 @@ Create an admin page that sets constants programmatically:
 ---
 slug: admin/constants/update
 method: post
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'admin.constants'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql _ = 'constants/set', name: context.params.name, value: context.params.value
   redirect_to '/admin/constants'
 %}

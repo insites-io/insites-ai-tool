@@ -8,6 +8,8 @@
 
 **Solution:** Verify the path maps correctly. `{% render 'products/card' %}` expects `app/views/partials/products/card.liquid`. Check for typos and ensure the `.liquid` extension exists on disk.
 
+> **Module note:** If the partial is inside a module, check `modules/<module_name>/public/views/partials/` or `private/views/partials/` instead.
+
 ### "Variable is nil inside partial"
 
 **Cause:** Variables are LOCAL to each partial. The caller's variables are not accessible unless explicitly passed.
@@ -19,7 +21,7 @@
 
 ### "GraphQL tag in partial causes error or is ignored"
 
-**Cause:** GraphQL calls should only be made in pages. Using `{% graphql %}` in partials violates the architecture rule and may fail with platformos-check.
+**Cause:** GraphQL calls should only be made in pages. Using `{% graphql %}` in partials violates the architecture rule and may fail with insites-cli audit.
 
 **Solution:** Move the GraphQL call to the page and pass the result to the partial as a parameter.
 
@@ -33,7 +35,7 @@
 
 **Cause:** Insites does NOT use underscore prefixes for partials (unlike Rails/Shopify conventions).
 
-**Solution:** Rename `_card.liquid` to `card.liquid`. The platformos-check linter flags this.
+**Solution:** Rename `_card.liquid` to `card.liquid`. The insites-cli audit linter flags this.
 
 ### "Export variable not accessible"
 
@@ -84,4 +86,4 @@ Partial problem?
 - [configuration.md](configuration.md) — file naming and structure
 - [api.md](api.md) — render, function, return, export reference
 - [patterns.md](patterns.md) — best practices
-- [CLI](../cli/README.md) — platformos-check linter
+- [CLI](../cli/README.md) — insites-cli audit linter

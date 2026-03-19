@@ -91,7 +91,7 @@ Each `{% render %}` and `{% function %}` call has overhead. Optimize by:
 
 ## Testing Function Partials
 
-Function partials (commands, helpers) are testable via pos-module-tests:
+Function partials (commands, helpers) are testable via the tests module:
 
 ```liquid
 {% comment %} app/lib/tests/helpers/format_price_test.liquid {% endcomment %}

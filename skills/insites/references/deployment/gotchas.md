@@ -15,7 +15,7 @@ insites-cli sync production --watch
 ### Why This Is Dangerous
 
 - No validation occurs with sync
-- No platformos-check
+- No insites-cli audit
 - Changes applied immediately
 - No rollback point
 - Breaks production for users
@@ -26,7 +26,7 @@ Always use deploy for production:
 
 ```bash
 # CORRECT
-platformos-check
+insites-cli audit
 insites-cli deploy production
 ```
 
@@ -38,13 +38,13 @@ Deployment includes:
 
 ## Deployment Validation Failures
 
-### platformos-check Failure
+### Linting (insites-cli audit) Failure
 
 **Issue**: Deployment blocked by validation errors
 
 **Solution**:
 ```bash
-platformos-check
+insites-cli audit
 # Fix reported issues
 insites-cli deploy staging
 ```
@@ -86,7 +86,7 @@ en:
 **Problem**: Database inconsistency
 
 **Solution**:
-1. Investigate error: `insites-cli logs staging --filter migration`
+1. Investigate error: `insites-cli logsv2 staging --filter migration`
 2. Fix migration file
 3. Create compensating migration
 4. Rerun deployment
@@ -126,7 +126,7 @@ insites-cli migrations list staging
 **Issue**: `insites-cli sync` shows no changes
 
 **Causes**:
-- Correct files not in `app/` directory
+- Correct files not in `app/` directory (or `modules/<module_name>/public/` / `private/` for module code)
 - Files ignored by Insites
 - Syntax errors preventing sync
 - Network connectivity
@@ -139,8 +139,8 @@ ls -la app/views/
 # Explicit sync with verbose output
 insites-cli sync dev --verbose
 
-# Clear cache if persistent
-insites-cli env clear-cache
+# Note: insites-cli env clear-cache does not exist.
+# Manually verify your .insites file if sync issues persist.
 ```
 
 ### Partial Sync Failures
@@ -213,6 +213,8 @@ properties:
 
 ## Test Failures During Deployment
 
+> **CLI STATUS:** `insites-cli test run` is under development and not yet available. The examples below describe intended future behavior.
+
 ### Tests Fail on Staging
 
 **Issue**: `insites-cli test run staging` fails
@@ -263,7 +265,7 @@ insites-cli deploy production
 **Issue**: Deployment fails with "Invalid token"
 
 **Solution**:
-- Verify `.pos` file: `cat .pos | head -5`
+- Verify `.insites` file (JSON): `cat .insites | python3 -m json.tool | head -10`
 - Check token in dashboard
 - Regenerate if expired
 - Use environment variables: `export POS_TOKEN=`
@@ -274,8 +276,8 @@ insites-cli deploy production
 
 **Prevention**:
 ```bash
-# Always verify environment
-insites-cli env current
+# Note: insites-cli env current does not exist.
+# Verify your target by checking the .insites file directly.
 
 # Use explicit environment
 insites-cli deploy production  # Not "insites-cli deploy"

@@ -11,7 +11,7 @@ insites-cli deploy production
 ```
 
 Deployment flow:
-1. Runs platformos-check validation
+1. Runs insites-cli audit validation
 2. Syncs files
 3. Executes migrations
 4. Applies schema changes
@@ -46,13 +46,13 @@ Access at `http://localhost:3000`
 
 ## Logs Command
 
-View instance logs with filtering:
+View instance logs with filtering. Use `logsv2` (alias: `l2`):
 
 ```bash
-insites-cli logs [environment]
-insites-cli logs dev
-insites-cli logs dev --filter "error"
-insites-cli logs staging --filter "background_job" --follow
+insites-cli logsv2 [environment]
+insites-cli logsv2 dev
+insites-cli logsv2 dev --filter "error"
+insites-cli logsv2 staging --filter "background_job" --follow
 ```
 
 Filter options:
@@ -75,11 +75,12 @@ insites-cli exec dev graphql "{ users { id name } }"
 
 ### Install Module
 
-Install modules from marketplace or custom repository:
+> **CLI STATUS:** `insites-cli modules install` is not yet available. Module installation is currently done manually.
+
+Pull an existing module from an instance:
 
 ```bash
-insites-cli modules install @platform-os/blog dev
-insites-cli modules install my-module staging
+insites-cli modules pull @platform-os/blog dev
 ```
 
 ### Download Module

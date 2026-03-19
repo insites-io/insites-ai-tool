@@ -5,6 +5,8 @@
 - Emails: `app/emails/`
 - SMS: `app/smses/`
 
+> **Module path:** When building a module, use `modules/<module_name>/private/emails/` and `modules/<module_name>/private/smses/` for email/SMS templates. These are typically private since they are triggered internally by module logic.
+
 ## Email Template
 
 ```liquid
@@ -52,17 +54,14 @@ mutation send($email: String!, $order_id: ID!, $total: String!) {
 
 ```liquid
 {% comment %} In command after creating order {% endcomment %}
-{% function _ = 'modules/core/commands/events/publish',
-  type: 'order_created',
-  object: order
-%}
-
-{% comment %} Consumer: app/lib/consumers/order_created/send_email.liquid {% endcomment %}
-{% graphql _ = 'emails/send_order_confirmation',
-  email: event.object.email,
-  order_id: event.object.id,
-  total: event.object.total
-%}
+{% background source_name: 'event:order_created', priority: 'default', max_attempts: 3 %}
+  {% comment %} Consumer: app/lib/consumers/order_created/send_email.liquid {% endcomment %}
+  {% graphql _ = 'emails/send_order_confirmation',
+    email: order.email,
+    order_id: order.id,
+    total: order.total
+  %}
+{% endbackground %}
 ```
 
 ## SMS Template

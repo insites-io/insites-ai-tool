@@ -2,7 +2,9 @@
 
 ## Overview
 
-Translation files in Insites are YAML files stored in `app/translations/` that define text strings for multiple languages. The `{{ 'key' | t }}` filter retrieves translated strings, with automatic fallback to default language. Translations support interpolation with `%{variable}` syntax in YAML and `| t: var: value` in Liquid. Multi-language support enables switching via `{% context language: 'de' %}`.
+Translation files in Insites are YAML files stored in `app/translations/` that define text strings for multiple languages.
+
+> **Module path:** In modules, translation files live in `modules/<module_name>/public/translations/`. Module translations are typically public so the app can override or extend them. The `{{ 'key' | t }}` filter retrieves translated strings, with automatic fallback to default language. Translations support interpolation with `%{variable}` syntax in YAML and `| t: var: value` in Liquid. Multi-language support enables switching via `{% context language: 'de' %}`.
 
 ## Directory Structure
 
@@ -91,32 +93,11 @@ greeting: "Hello, %{user_name}!"
 order_confirmation: "Order #%{order_id} for %{user_name} totaling %{amount}"
 ```
 
-## Configuration in .pos
+## Translation Configuration
 
-### Translation Settings
+Translation settings are managed through `app/config.yml` and the translation YAML files themselves — NOT in the `.insites` file (which only contains environment credentials).
 
-```yaml
-translations:
-  enabled: true
-  default_language: 'en'
-  fallback_language: 'en'
-  supported_languages:
-    - en
-    - de
-    - fr
-    - es
-```
-
-### Language Paths
-
-Store translations by environment:
-
-```yaml
-translations:
-  paths:
-    - 'app/translations/'
-    - 'vendor/module/translations/'
-```
+The default language is determined by which translation files exist in `app/translations/`. The platform automatically loads all `*.yml` files from that directory and from any installed module's `public/translations/` directory.
 
 ## Language Detection
 

@@ -135,8 +135,8 @@ insites-cli constants set --name SENDGRID_FROM_NAME --value "My App" dev
 After installing a module, configure it with constants.
 
 ```bash
-# Install the payments module
-insites-cli modules install payments
+# Pull the payments module from instance (install is not yet available via CLI)
+insites-cli modules pull payments dev
 
 # Set the constants the module expects
 insites-cli constants set --name STRIPE_SK_KEY --value "sk_test_..." dev

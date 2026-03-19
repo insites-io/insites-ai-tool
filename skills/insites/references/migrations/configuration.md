@@ -4,6 +4,8 @@
 
 Migrations in Insites are Liquid templates that execute once during deployment to initialize data, seed databases, or configure constants. Located in `app/migrations/`, migrations are named with timestamp prefixes (YYYYMMDDHHMMSS_name.liquid) and auto-run on `insites-cli deploy`. State tracking (pending/done/error) prevents duplicate execution. Use migrations for one-time setup tasks, data seeding, and environment-specific initialization.
 
+> **Module path:** In modules, migrations live in `modules/<module_name>/private/migrations/`. Migrations are always private since they are internal to the module's data setup.
+
 ## Migration File Structure
 
 ### File Naming Convention
@@ -115,17 +117,9 @@ Migrations with errors are marked as failed:
 
 Manual intervention required to recover from errors.
 
-## Configuration in .pos
+## Migration Behavior
 
-### Migration Settings
-
-```yaml
-migrations:
-  enabled: true
-  auto_run: true
-  timeout_seconds: 300
-  # Migrations run for max 5 minutes
-```
+Migrations are enabled by default and run automatically during `insites-cli deploy`. The `.insites` file only contains environment credentials — it does not have migration configuration options. Migration behavior (auto-run, ordering) is managed by the platform.
 
 ## Migration Best Practices
 

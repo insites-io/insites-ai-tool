@@ -1,6 +1,6 @@
 # Authentication -- API Reference
 
-This document covers the Liquid tags, module helpers, and context objects used for authentication and authorization in Insites.
+This document covers the Liquid tags, context objects, authorization policies, and inline patterns used for authentication and authorization in Insites.
 
 ## Liquid Tags
 
@@ -30,93 +30,176 @@ Destroys the current session.
 
 No parameters. The session is invalidated immediately. Typically followed by a redirect.
 
-## Module Helpers
+## Loading the Current User
 
-All helpers live in the `pos-module-user` module. Call them with `{% function %}` or `{% include %}`.
-
-### Get current user
+The foundation of authentication is `context.current_user`, which is populated after a successful `sign_in`. To get the full profile (including roles), run a GraphQL query:
 
 ```liquid
-{% function profile = 'modules/user/queries/user/current' %}
+{% liquid
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+%}
 ```
 
-Returns the full user profile hash, or `nil` if not authenticated. **Always use this instead of `context.current_user`.**
+The `users/current.graphql` query:
+
+```graphql
+query current($id: ID!) {
+  users(per_page: 1, filter: { id: { value: $id } }) {
+    results {
+      email
+      id
+      roles: property_array(name: "roles")
+    }
+  }
+}
+```
 
 | Field | Description |
 |-------|-------------|
 | `profile.id` | User record ID |
 | `profile.email` | User email |
-| `profile.role` | Assigned role name string |
-| `profile.properties` | Custom user properties hash |
+| `profile.roles` | Array of role strings (from `property_array`) |
 
-### can_do (check permission)
+## Authorization Policies (Preferred for Page Guards)
 
-Returns `true` or `false`. Does NOT block execution.
+Authorization policies are the native platform way to protect entire pages. Define a policy file and reference it in page front matter.
+
+### Define a policy
 
 ```liquid
-{% function can = 'modules/user/helpers/can_do',
-  requester: profile,
-  do: 'products.create'
-%}
+{% comment %} app/authorization_policies/admin_only.liquid {% endcomment %}
+---
+name: admin_only
+---
+{% liquid
+  if context.current_user == blank
+    return false
+  endif
 
-{% if can %}
+  graphql g = 'users/current', id: context.current_user.id
+  assign profile = g.users.results.first
+
+  if profile.roles contains 'admin' or profile.roles contains 'superadmin'
+    return true
+  endif
+
+  return false
+%}
+```
+
+### Use in page front matter
+
+```liquid
+---
+slug: admin/dashboard
+authorization_policies:
+  - admin_only
+---
+{% comment %} This page only renders if the policy returns true {% endcomment %}
+```
+
+The platform returns a 403 automatically if the policy returns `false`. No inline guard code needed.
+
+## Inline Role Checks
+
+For conditional UI or custom guard logic within a page, check roles directly on the profile.
+
+### Inline permission check (conditional UI)
+
+Does NOT block execution -- use for showing/hiding elements.
+
+```liquid
+{% if profile.roles contains 'admin' %}
   <a href="/products/new">Create Product</a>
 {% endif %}
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `requester` | Hash | Yes | User profile from `queries/user/current` |
-| `do` | String | Yes | Action string to check (e.g., `products.create`) |
-
-### can_do_or_unauthorized (enforce with 403)
-
-Halts page execution if the user lacks permission. Returns a 403 status or redirects anonymous users to the login page.
+For more granular checks using a permissions map:
 
 ```liquid
-{% include 'modules/user/helpers/can_do_or_unauthorized',
-  requester: profile,
-  do: 'admin.view',
-  redirect_anonymous_to_login: true
+{% liquid
+  parse_json permissions
+    {
+      "admin": ["products.create", "products.update", "products.delete"],
+      "editor": ["products.create", "products.update"],
+      "superadmin": []
+    }
+  endparse_json
+  assign can_create = false
+  for role in profile.roles
+    if role == 'superadmin'
+      assign can_create = true
+      break
+    endif
+    if permissions[role] contains 'products.create'
+      assign can_create = true
+      break
+    endif
+  endfor
+%}
+
+{% if can_create %}
+  <a href="/products/new">Create Product</a>
+{% endif %}
+```
+
+### Inline guard (enforce with 403)
+
+Halts page execution if the user lacks permission.
+
+```liquid
+{% liquid
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
 %}
 ```
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `requester` | Hash | Yes | -- | User profile |
-| `do` | String | Yes | -- | Action string to enforce |
-| `redirect_anonymous_to_login` | Boolean | No | `false` | Redirect anonymous users to `/sign-in` instead of 403 |
-
-### can_do_or_redirect (enforce with redirect)
-
-Redirects the user to a specified URL if permission is denied.
+For role-specific enforcement:
 
 ```liquid
-{% include 'modules/user/helpers/can_do_or_redirect',
-  requester: profile,
-  do: 'orders.view',
-  return_url: '/login'
+{% liquid
+  unless profile and profile.roles contains 'admin'
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
 %}
 ```
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `requester` | Hash | Yes | User profile |
-| `do` | String | Yes | Action string to enforce |
-| `return_url` | String | Yes | URL to redirect to when denied |
+### Inline guard with login redirect
+
+Redirect anonymous users to the login page instead of showing 403:
+
+```liquid
+{% liquid
+  unless profile
+    assign return_to = context.location.pathname
+    redirect_to '/sign-in?return_to=' | append: return_to
+    break
+  endunless
+%}
+```
 
 ## Context Objects
 
 ### context.current_user
 
-Available after authentication. Contains basic user fields.
+Available after authentication. Contains basic user fields. This is the foundation for loading the full user profile.
 
 ```liquid
 {{ context.current_user.id }}
 {{ context.current_user.email }}
 ```
 
-**WARNING:** Do NOT use `context.current_user` for permission checks. Always use the module query and helpers. `context.current_user` is `null` when the CSRF token is missing on non-GET requests.
+**Note:** `context.current_user` is `null` when the CSRF token is missing on non-GET requests. Always include the `authenticity_token` in forms. For permission checks, load the full profile (with roles) via GraphQL as shown above.
 
 ### context.authenticity_token
 
@@ -128,7 +211,7 @@ The CSRF token for the current session. Include in every non-GET form.
 
 ### context.session
 
-Raw session data. Prefer module helpers over direct session access.
+Raw session data.
 
 ```liquid
 {{ context.session }}

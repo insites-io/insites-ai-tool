@@ -4,7 +4,7 @@
 
 ### Local Development Setup
 
-1. Configure development environment in `.pos` file
+1. Configure development environment in `.insites` file
 2. Start GUI server for hot reload:
 
 ```bash
@@ -20,17 +20,17 @@ insites-cli sync dev --watch
 4. View real-time logs:
 
 ```bash
-insites-cli logs dev --follow
+insites-cli logsv2 dev --follow
 ```
 
 ## Pre-Deployment Validation
 
 ### Linting and Checks
 
-Always run platformos-check before deployment:
+Always run insites-cli audit before deployment:
 
 ```bash
-platformos-check
+insites-cli audit
 ```
 
 Checks performed:
@@ -46,7 +46,7 @@ Execute tests on staging:
 
 ```bash
 insites-cli test run staging
-insites-cli logs staging --filter error
+insites-cli logsv2 staging --filter error
 ```
 
 ## Environment Promotion Pipeline
@@ -77,10 +77,14 @@ insites-cli deploy production
 
 ### Installing Dependencies
 
+> **CLI STATUS:** `insites-cli modules install` is not yet available. Module installation is currently done manually.
+
+Pull existing modules from an instance:
+
 ```bash
-insites-cli modules install @platform-os/core dev
-insites-cli modules install @platform-os/blog dev
-insites-cli modules install my-custom-module dev
+insites-cli modules pull @platform-os/core dev
+insites-cli modules pull @platform-os/blog dev
+insites-cli modules pull my-custom-module dev
 ```
 
 ### Updating Modules
@@ -146,10 +150,10 @@ insites-cli data clean staging test_records
 ```bash
 #!/bin/bash
 ENV=$1
-insites-cli platformos-check
+insites-cli audit
 insites-cli deploy $ENV
 insites-cli test run $ENV
-insites-cli logs $ENV --filter error
+insites-cli logsv2 $ENV --filter error
 ```
 
 ## See Also

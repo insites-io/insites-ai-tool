@@ -8,6 +8,8 @@ Insites emails and SMS messages are configured through their respective file str
 
 Emails are defined in `app/emails/` with front matter metadata:
 
+> **Module path:** In modules, email templates live in `modules/<module_name>/private/emails/` and SMS in `modules/<module_name>/private/smses/`. These are typically private since they are triggered internally by module logic.
+
 ```yaml
 ---
 to: '{{ user.email }}'

@@ -70,7 +70,12 @@ slug: dashboard
 layout: ""
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
   if profile.role == 'admin'
     theme_render_rc 'admin'
   else
@@ -158,7 +163,12 @@ Create a shared partial that runs common checks:
 ```liquid
 {% comment %} app/views/partials/lib/helpers/before_action.liquid {% endcomment %}
 {% liquid
-  function profile = 'modules/user/queries/user/current'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
   assign context_data = '{}' | parse_json
   hash_assign context_data['profile'] = profile
   hash_assign context_data['is_admin'] = false
@@ -174,7 +184,11 @@ Use in every page:
 ```liquid
 {% liquid
   function ctx = 'lib/helpers/before_action'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: ctx.profile, do: 'admin.access'
+  unless ctx.profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql data = 'admin/dashboard_stats'
   render 'admin/dashboard', data: data, ctx: ctx
 %}
@@ -233,13 +247,28 @@ Pages can trigger async background jobs:
 ---
 slug: admin/exports/start
 method: post
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'admin.export'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql _ = 'background/trigger_export', user_id: profile.id
-  function _ = 'modules/core/commands/session/set', key: 'sflash', value: 'Export started. You will receive an email when complete.', from: context.location.pathname
+  parse_json flash
+    { "notice": "Export started. You will receive an email when complete.", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
   redirect_to '/admin/exports'
+  break
 %}
 ```
 

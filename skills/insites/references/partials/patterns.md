@@ -41,18 +41,30 @@ See [Commands](../commands/README.md) for the full build/check/execute pattern.
 
 ```liquid
 {% comment %} app/views/partials/lib/commands/products/create.liquid {% endcomment %}
-{% parse_json object %}
-  { "title": {{ title | json }}, "price": {{ price | json }} }
-{% endparse_json %}
-{% function object = 'modules/core/commands/build', object: object %}
-{% parse_json validators %}
-  [{ "name": "presence", "property": "title" }]
-{% endparse_json %}
-{% function object = 'modules/core/commands/check', object: object, validators: validators %}
-{% if object.valid %}
-  {% function object = 'modules/core/commands/execute', mutation_name: 'products/create', selection: 'record_create', object: object %}
-{% endif %}
-{% return object %}
+{% liquid
+  comment Build: parse_json IS the build step
+  parse_json object
+    { "title": {{ title | json }}, "price": {{ price | json }} }
+  endparse_json
+  hash_assign object['valid'] = true
+  hash_assign object['errors'] = '{}' | parse_json
+
+  comment Check: inline validation
+  if object.title == blank
+    assign field_errors = object.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank"
+    hash_assign object['errors']['title'] = field_errors
+    hash_assign object['valid'] = false
+  endif
+
+  comment Execute: run GraphQL mutation if valid
+  if object.valid
+    graphql r = 'products/create', args: object
+    assign object = r.record_create
+    hash_assign object['valid'] = true
+  endif
+
+  return object
+%}
 ```
 
 ## Form Partial with Validation Errors
@@ -100,6 +112,154 @@ Small utility partials that return computed values:
 {% assign formatted = amount | pricify: currency %}
 {% return formatted %}
 ```
+
+## Extracting Reusable Code (Refactoring)
+
+When you see the same logic repeated across multiple files, extract it into a reusable partial. This is the primary way to keep code DRY in Insites.
+
+### When to extract
+
+| Signal | Extract into |
+|--------|-------------|
+| Same validation check in 3+ commands | `lib/validations/presence.liquid` |
+| Same GraphQL execute + error log in every command | `lib/commands/execute.liquid` |
+| Same UI block on multiple pages | `shared/card.liquid`, `shared/pagination.liquid` |
+| Same auth guard in multiple pages | `authorization_policies/is_admin.liquid` or `lib/helpers/guard.liquid` |
+| Same data transformation | `lib/helpers/format_price.liquid` |
+
+### Example: Extracting a validation helper
+
+**Before** — same presence check duplicated in every command:
+```liquid
+{% comment %} commands/products/create.liquid {% endcomment %}
+{% if object.title == blank %}
+  {% assign errs = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['title'] = errs %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% comment %} commands/orders/create.liquid — same pattern, different field {% endcomment %}
+{% if object.customer_name == blank %}
+  {% assign errs = c.errors.customer_name | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['customer_name'] = errs %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+```
+
+**After** — extracted into a reusable helper:
+```liquid
+{% comment %} app/views/partials/lib/validations/presence.liquid {% endcomment %}
+{% liquid
+  if object[field_name] == blank
+    assign message = message | default: "can't be blank"
+    assign errs = c.errors[field_name] | default: '[]' | parse_json | add_to_array: message
+    hash_assign c['errors'][field_name] = errs
+    hash_assign c['valid'] = false
+  endif
+  return c
+%}
+```
+
+Now every command calls it in one line:
+```liquid
+{% function c = 'lib/validations/presence', c: c, object: object, field_name: 'title' %}
+{% function c = 'lib/validations/presence', c: c, object: object, field_name: 'price' %}
+```
+
+### Example: Extracting the execute pattern
+
+**Before** — same 4 lines in every command:
+```liquid
+{% graphql r = 'products/create', args: object %}
+{% if r.errors %}{% log r, type: 'ERROR' %}{% endif %}
+{% assign object = r.record_create %}
+{% hash_assign object['valid'] = true %}
+```
+
+**After** — reusable execute helper:
+```liquid
+{% comment %} app/views/partials/lib/commands/execute.liquid {% endcomment %}
+{% liquid
+  assign selection = selection | default: 'record'
+  graphql r = mutation_name, args: object
+  if r.errors
+    log r, type: 'ERROR: execute'
+  endif
+  assign object = r[selection]
+  hash_assign object['valid'] = true
+  return object
+%}
+```
+
+Called as:
+```liquid
+{% function object = 'lib/commands/execute', mutation_name: 'products/create', selection: 'record_create', object: object %}
+```
+
+### Example: Extracting a shared UI component
+
+**Before** — same card markup in 3 different list pages:
+```liquid
+<div class="pos-card">
+  <h3>{{ item.title }}</h3>
+  <p>{{ item.description | truncate: 100 }}</p>
+  <a href="/{{ resource }}/{{ item.id }}">View</a>
+</div>
+```
+
+**After** — one reusable partial:
+```liquid
+{% comment %} app/views/partials/shared/card.liquid {% endcomment %}
+<div class="pos-card">
+  <h3>{{ title }}</h3>
+  {% if description %}
+    <p>{{ description | truncate: 100 }}</p>
+  {% endif %}
+  <a href="{{ url }}" class="pos-button">{{ link_text | default: 'View' }}</a>
+</div>
+```
+
+Called as:
+```liquid
+{% render 'shared/card', title: product.title, description: product.description, url: '/products/' | append: product.id %}
+```
+
+### Example: Extracting an authorization policy
+
+**Before** — same inline guard repeated in every admin page:
+```liquid
+{% unless context.current_user %}
+  {% response_status 403 %}
+  {% render 'errors/unauthorized' %}
+  {% break %}
+{% endunless %}
+```
+
+**After** — authorization policy file:
+```liquid
+{% comment %} app/authorization_policies/is_logged_in.liquid {% endcomment %}
+---
+name: is_logged_in
+redirect_to: /login
+flash_alert: Please log in to access this page.
+---
+{% if context.current_user %}true{% endif %}
+```
+
+Applied declaratively in page front matter:
+```yaml
+---
+slug: admin/dashboard
+authorization_policies:
+  - is_logged_in
+---
+```
+
+### When NOT to extract
+
+- **Used only once** — extracting a one-off block adds indirection without reducing duplication
+- **Logic differs between uses** — if the "shared" code needs heavy conditional branches per caller, keep it inline
+- **Trivial code** — a single `if` check isn't worth a separate file
 
 ## Best Practices
 

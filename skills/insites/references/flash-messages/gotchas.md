@@ -6,40 +6,33 @@ Common pitfalls and troubleshooting tips for flash message implementation in Ins
 
 ## Flash Not Appearing
 
-### Module Not Included
+### Missing Flash Handling in Layout
 
-Flash messages require `pos-module-core` in dependencies. Add to `app/modules/module.yml`:
-
-```yaml
-dependencies:
-  - pos-module-core
-```
-
-Without this, the helper functions won't be available.
-
-### Missing get_flash Include
-
-Flash won't display if `get_flash` helper isn't called in your layout:
+Flash won't display if the layout doesn't read from `context.session.sflash`:
 
 ```liquid
-<!-- Add to app/views/layouts/application.liquid -->
-{% include 'modules/core/helpers/flash/get_flash' %}
+<!-- Add to app/views/layouts/application.liquid before </body> -->
+{% liquid
+  assign flash = context.session.sflash | parse_json
+  if context.location.pathname != flash.from or flash.force_clear
+    session sflash = null
+  endif
+  render 'shared/toasts', params: flash
+%}
 ```
-
-Call this early in layout before rendering flash elements.
 
 ### Conditional Layout Application
 
 Verify flash-enabled layout is used on redirect target page:
 
 ```liquid
-<!-- Correct: Layout includes get_flash -->
-{% if sflash %}
-  <div class="alert">{{ sflash.notice | t }}</div>
+{%- assign flash = context.session.sflash | parse_json -%}
+{% if flash %}
+  <div class="alert">{{ flash.notice | t }}</div>
 {% endif %}
 ```
 
-If layout doesn't include the helper, `sflash` variable is undefined.
+If layout doesn't read from session, flash data is ignored.
 
 ## Flash Persisting Across Pages
 
@@ -48,10 +41,10 @@ If layout doesn't include the helper, `sflash` variable is undefined.
 Flash should clear when pathname changes. Check that URL actually changed:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{%- assign flash = context.session.sflash | parse_json -%}
 <!-- Debug: Check pathname -->
-<!-- Current: {{ request.url_path }} -->
-<!-- Previous: {{ sflash.pathname }} -->
+<!-- Current: {{ context.location.pathname }} -->
+<!-- Flash from: {{ flash.from }} -->
 ```
 
 If both are identical, flash persists (by design).
@@ -68,7 +61,7 @@ URL anchors (#section) don't affect pathname, flash won't clear:
 Manually clear if needed:
 
 ```liquid
-{% include 'modules/core/helpers/flash/clear' %}
+{% session sflash = null %}
 ```
 
 ## Localization Key Not Resolving
@@ -91,17 +84,18 @@ Without this key, `{{ flash_key | t }}` renders empty or the key itself.
 Localization keys use dot notation:
 
 ```liquid
-<!-- Correct -->
-{% include 'modules/core/helpers/redirect_to',
-  url: '/dashboard',
-  notice: 'user.profile_updated'
+{% comment %} Correct {% endcomment %}
+{% liquid
+  parse_json flash
+    { "notice": "user.profile_updated", "from": "/dashboard" }
+  endparse_json
+  session sflash = flash
+  redirect_to '/dashboard'
+  break
 %}
 
-<!-- Incorrect -->
-{% include 'modules/core/helpers/redirect_to',
-  url: '/dashboard',
-  notice: 'user-profile-updated'
-%}
+{% comment %} Incorrect - hyphens not valid in i18n keys {% endcomment %}
+{% comment %} "notice": "user-profile-updated" {% endcomment %}
 ```
 
 ## Flash with Redirect Loop
@@ -111,22 +105,28 @@ Localization keys use dot notation:
 Infinite redirect occurs if redirect URL points back to itself:
 
 ```liquid
-<!-- WRONG: Creates redirect loop -->
-{% if form.valid? %}
-  {% include 'modules/core/helpers/redirect_to',
-    url: request.url_path,
-    notice: 'saved'
-  %}
-{% endif %}
+{% comment %} WRONG: Creates redirect loop {% endcomment %}
+{% liquid
+  parse_json flash
+    { "notice": "saved", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to context.location.pathname
+  break
+%}
 ```
 
 Always redirect to a different URL:
 
 ```liquid
-<!-- CORRECT -->
-{% include 'modules/core/helpers/redirect_to',
-  url: '/dashboard',
-  notice: 'saved'
+{% comment %} CORRECT {% endcomment %}
+{% liquid
+  parse_json flash
+    { "notice": "saved", "from": "/dashboard" }
+  endparse_json
+  session sflash = flash
+  redirect_to '/dashboard'
+  break
 %}
 ```
 
@@ -134,26 +134,22 @@ Always redirect to a different URL:
 
 ### Only One Type Renders
 
-Only one flash message per type displays at a time:
+Only one flash message per type displays at a time. The JSON object holds one value per key, so the last `session sflash` call wins.
 
-```liquid
-<!-- Second notice overwrites first -->
-{% include 'modules/core/helpers/flash/publish', notice: 'first' %}
-{% include 'modules/core/helpers/flash/publish', notice: 'second' %}
-<!-- Only 'second' displays -->
-```
-
-Use single call with appropriate type or restructure logic.
+Use a single `parse_json` call with the appropriate type or restructure logic.
 
 ### Mixed Types Work
 
-Different types work together:
+Different types work together in the same flash object:
 
 ```liquid
-{% include 'modules/core/helpers/redirect_to',
-  url: '/form',
-  notice: 'saved',
-  warning: 'some_fields_empty'
+{% liquid
+  parse_json flash
+    { "notice": "saved", "warning": "some_fields_empty", "from": "/form" }
+  endparse_json
+  session sflash = flash
+  redirect_to '/form'
+  break
 %}
 ```
 
@@ -163,19 +159,17 @@ Both `notice` and `warning` will display.
 
 ### User Input in Flash
 
-Sanitize user input before putting in flash:
+Never put user-provided content directly in flash messages. Always use localization keys:
 
 ```liquid
-<!-- UNSAFE -->
-{% include 'modules/core/helpers/redirect_to',
-  url: '/items',
-  notice: user_provided_message
-%}
-
-<!-- SAFE -->
-{% include 'modules/core/helpers/redirect_to',
-  url: '/items',
-  notice: 'item.created'
+{% comment %} SAFE: Use localization keys for user-facing messages {% endcomment %}
+{% liquid
+  parse_json flash
+    { "notice": "item.created", "from": "/items" }
+  endparse_json
+  session sflash = flash
+  redirect_to '/items'
+  break
 %}
 ```
 
@@ -183,18 +177,11 @@ Always use localization keys for user-facing messages.
 
 ### Variable Interpolation
 
-Variables don't interpolate in flash keys automatically:
+Variables don't interpolate in flash keys. Use `| t` filter with parameters when displaying:
 
 ```liquid
-<!-- WRONG: Variable not substituted -->
-{% assign item_name = 'Widget' %}
-{% include 'modules/core/helpers/redirect_to',
-  url: '/items',
-  notice: 'item.created_called_{{ item_name }}'
-%}
-
-<!-- RIGHT: Use i18n with parameters -->
-{{ 'item.created' | t: name: item_name }}
+{% comment %} RIGHT: Use i18n with parameters when rendering {% endcomment %}
+{{ flash.notice | t: name: item_name }}
 ```
 
 ## JavaScript Toast Issues
@@ -218,7 +205,7 @@ document.addEventListener('posModulesReady', function() {
 Toast visual styles require CSS classes. Ensure styles are loaded:
 
 ```liquid
-<link rel="stylesheet" href="/modules/core/css/toast.css">
+<link rel="stylesheet" href="{{ 'styles/toast.css' | asset_url }}">
 ```
 
 Without CSS, toast displays as plain text or invisible.
@@ -230,9 +217,9 @@ Without CSS, toast displays as plain text or invisible.
 Flash lives in session. Session timeout clears flash:
 
 ```liquid
-<!-- If session expires, flash is lost -->
-{% include 'modules/core/helpers/flash/get_flash' %}
-<!-- sflash is empty -->
+{% comment %} If session expires, flash is lost {% endcomment %}
+{%- assign flash = context.session.sflash | parse_json -%}
+{% comment %} flash is null {% endcomment %}
 ```
 
 Keep session timeout appropriate for expected redirect time.

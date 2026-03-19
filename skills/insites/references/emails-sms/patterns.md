@@ -10,10 +10,9 @@ The recommended pattern uses events and consumers for non-blocking email deliver
 
 ```liquid
 {% if user.email %}
-  {% include 'modules/core/helpers/send_event',
-    event: 'user/welcome',
-    payload: user.id
-  %}
+  {% background source_name: 'event:user_welcome', priority: 'default', max_attempts: 3 %}
+    {% graphql _ = 'emails/send_welcome', to: user.email, user_name: user.first_name %}
+  {% endbackground %}
 {% endif %}
 ```
 
@@ -51,15 +50,13 @@ Send different emails based on user context:
 
 ```liquid
 {% if user.type == 'premium' %}
-  {% include 'modules/core/helpers/send_event',
-    event: 'premium_user/notification',
-    payload: user.id
-  %}
+  {% background source_name: 'event:premium_user_notification', priority: 'default', max_attempts: 3 %}
+    {% graphql _ = 'emails/send_premium_notification', to: user.email %}
+  {% endbackground %}
 {% else %}
-  {% include 'modules/core/helpers/send_event',
-    event: 'user/notification',
-    payload: user.id
-  %}
+  {% background source_name: 'event:user_notification', priority: 'default', max_attempts: 3 %}
+    {% graphql _ = 'emails/send_notification', to: user.email %}
+  {% endbackground %}
 {% endif %}
 ```
 
@@ -68,9 +65,13 @@ Send different emails based on user context:
 Send flash message while redirecting:
 
 ```liquid
-{% include 'modules/core/helpers/redirect_to',
-  url: '/dashboard',
-  notice: 'user.welcome_sent'
+{% liquid
+  parse_json flash
+    { "notice": "user.welcome_sent", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/dashboard'
+  break
 %}
 ```
 

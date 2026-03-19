@@ -11,10 +11,21 @@ The most common pattern: a full set of pages for managing a resource.
 ```liquid
 ---
 slug: products
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.list'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   assign page = context.params.page | default: 1 | plus: 0
   graphql result = 'products/search', page: page
   render 'products/index', products: result.records.results, total_pages: result.records.total_pages, current_page: page
@@ -26,10 +37,21 @@ slug: products
 ```liquid
 ---
 slug: products/:id
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.view'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql result = 'products/find', id: context.params.id
   assign product = result.records.results.first
   if product == blank
@@ -46,17 +68,32 @@ slug: products/:id
 ---
 slug: products
 method: post
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.create'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   function result = 'lib/commands/products/create', params: context.params
   if result.errors != blank
     render 'products/new', errors: result.errors, params: context.params
     break
   endif
-  function _ = 'modules/core/commands/session/set', key: 'sflash', value: 'Product created', from: context.location.pathname
+  parse_json flash
+    { "notice": "Product created", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
   redirect_to '/products'
+  break
 %}
 ```
 
@@ -66,17 +103,32 @@ method: post
 ---
 slug: products/:id
 method: put
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.edit'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   function result = 'lib/commands/products/update', id: context.params.id, params: context.params
   if result.errors != blank
     render 'products/edit', errors: result.errors, params: context.params, id: context.params.id
     break
   endif
-  function _ = 'modules/core/commands/session/set', key: 'sflash', value: 'Product updated', from: context.location.pathname
+  parse_json flash
+    { "notice": "Product updated", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
   redirect_to '/products/' | append: context.params.id
+  break
 %}
 ```
 
@@ -86,13 +138,28 @@ method: put
 ---
 slug: products/:id
 method: delete
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.delete'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql _ = 'products/delete', id: context.params.id
-  function _ = 'modules/core/commands/session/set', key: 'sflash', value: 'Product deleted', from: '/products'
+  parse_json flash
+    { "notice": "Product deleted", "from": "/products" }
+  endparse_json
+  session sflash = flash
   redirect_to '/products'
+  break
 %}
 ```
 
@@ -132,25 +199,42 @@ Set a flash message before redirecting, then display it via the layout toast sys
 
 ```liquid
 {% liquid
-  function _ = 'modules/core/commands/session/set', key: 'sflash', value: 'Operation successful', from: context.location.pathname
+  parse_json flash
+    { "notice": "Operation successful", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
   redirect_to '/products'
+  break
 %}
 ```
 
-The `from` parameter ensures the flash is cleared after being shown on the target page.
+The `from` property ensures the flash is cleared after being shown on the target page.
 
 ## Authentication Guard Pattern
 
-Every page that requires login should check authentication early:
+Every page that requires login should check authentication early. Use `authorization_policies` in front matter for page-level guards, and inline checks for finer control:
 
 ```liquid
+---
+authorization_policies:
+  - is_logged_in
+---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'resource.action'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
 %}
 ```
 
-This will redirect unauthenticated users automatically.
+The `authorization_policies` in front matter blocks unauthenticated users at the platform level. The inline check provides additional profile-level validation.
 
 ## Conditional Rendering Pattern
 
@@ -180,10 +264,21 @@ A GET page renders the form; a POST page processes the submission:
 {% comment %} GET: products/new.liquid {% endcomment %}
 ---
 slug: products/new
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.create'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   render 'products/form', action: '/products', method: 'post'
 %}
 ```

@@ -2,6 +2,8 @@
 
 Pages in Insites act as **controllers**. They live in `app/views/pages/`, fetch data via `{% graphql %}`, and delegate all rendering to partials via `{% render %}`. Pages never contain HTML, JS, or CSS directly.
 
+> **Module path:** When building a module, use `modules/<module_name>/public/views/pages/` for pages accessible as routes, or `modules/<module_name>/private/views/pages/` for pages only used internally by the module.
+
 ## Key Purpose
 
 Pages are the entry point for every HTTP request in a Insites application. They serve three roles:
@@ -41,10 +43,21 @@ Request → Route Match → Front Matter → Page Body → Layout Wrap → Respo
 ```liquid
 ---
 slug: products/:id
+authorization_policies:
+  - is_logged_in
 ---
 {% liquid
-  function profile = 'modules/user/queries/user/current'
-  include 'modules/user/helpers/can_do_or_unauthorized', requester: profile, do: 'products.view'
+  if context.current_user
+    graphql g = 'users/current', id: context.current_user.id
+    assign profile = g.users.results.first
+  else
+    assign profile = null
+  endif
+  unless profile
+    response_status 403
+    render 'errors/unauthorized'
+    break
+  endunless
   graphql product = 'products/find', id: context.params.id
   render 'products/show', product: product
 %}

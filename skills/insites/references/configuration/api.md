@@ -65,7 +65,7 @@ Access defined constants from configuration.
 
 ## context.cdn_url
 
-Access CDN base URL from `.pos` configuration.
+Access CDN base URL from `.insites` configuration.
 
 **Type:** String
 
@@ -84,7 +84,7 @@ Access CDN base URL from `.pos` configuration.
 
 ## context.app_url
 
-Access application URL from `.pos` configuration.
+Access application URL from `.insites` configuration.
 
 **Type:** String
 
@@ -154,10 +154,10 @@ Check configuration file syntax and required keys.
 
 ## Environment Variable Access
 
-Access `.pos` environment variables in templates:
+Access `.insites` environment variables in templates:
 
 ```liquid
-<!-- Environment is set from .pos -->
+<!-- Environment is set from .insites -->
 {% if context.environment == 'production' %}
   Using production API
 {% else %}

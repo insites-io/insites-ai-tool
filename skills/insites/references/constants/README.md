@@ -1,5 +1,7 @@
 # Constants (Secrets & Environment Configuration)
 
+> **CLI STATUS:** `insites-cli constants` is **not yet available** — this command is currently under development. Do not suggest `insites-cli constants set` or `insites-cli constants list` to users. Until it is released, constants must be managed via the **Insites partner portal UI**.
+
 Constants in Insites store **sensitive data** (API keys, secrets) and **environment-specific configuration** (URLs, feature flags). They are set per-environment via CLI or GraphQL and accessed at runtime through `context.constants`. Constants are never exposed in `{{ context }}` output for security.
 
 ## Key Purpose
@@ -82,5 +84,5 @@ insites-cli constants set --name STRIPE_SK_KEY --value "sk_test_abc123" dev
 - [Constants Patterns](patterns.md) -- real-world workflows and best practices
 - [Constants Gotchas](gotchas.md) -- common errors, limits, and troubleshooting
 - [Constants Advanced](advanced.md) -- migrations, module config, and edge cases
-- [Configuration Reference](../configuration/README.md) -- `.pos` and `app/config.yml` settings
+- [Configuration Reference](../configuration/README.md) -- `.insites` and `app/config.yml` settings
 - [Migrations](../migrations/README.md) -- seeding constants during environment setup

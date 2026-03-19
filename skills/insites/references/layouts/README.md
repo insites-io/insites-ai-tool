@@ -2,6 +2,8 @@
 
 Layouts are wrapper templates that provide the common HTML shell around page content. They define the `<head>`, `<body>`, navigation, footer, and shared assets that every page inherits. Layouts live in `app/views/layouts/`.
 
+> **Module path:** When building a module, use `modules/<module_name>/public/views/layouts/` for layouts accessible to the app and other modules, or `modules/<module_name>/private/views/layouts/` for layouts only used within the module.
+
 ## Key Purpose
 
 Layouts serve as the outermost template layer in Insites rendering. They handle:
@@ -56,11 +58,11 @@ Page Output → {{ content_for_layout }} inside Layout → Final HTML Response
   {{ content_for_layout }}
 
   {% liquid
-    function flash = 'modules/core/commands/session/get', key: 'sflash'
+    assign flash = context.session.sflash | parse_json
     if context.location.pathname != flash.from or flash.force_clear
-      function _ = 'modules/core/commands/session/clear', key: 'sflash'
+      session sflash = null
     endif
-    render 'modules/common-styling/toasts', params: flash
+    render 'shared/toasts', params: flash
   %}
 
   {% yield 'footer_scripts' %}

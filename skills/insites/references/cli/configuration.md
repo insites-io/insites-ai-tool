@@ -2,40 +2,45 @@
 
 ## Overview
 
-The Insites CLI (insites-cli) requires configuration through `.pos` environment files to manage deployments across different environments (development, staging, production).
+The Insites CLI (insites-cli) requires configuration through `.insites` environment files to manage deployments across different environments (development, staging, production).
 
-## Environment Configuration (.pos File)
+## Environment Configuration (.insites File)
 
 ### File Location and Structure
 
-Create `.pos` file in your project root to define environment credentials:
+The `.insites` file is a JSON file in your project root. Generate it using `insites-cli env add`:
 
-```yaml
-development:
-  url: https://your-dev-instance.platformos.com
-  token: your-dev-token
-  email: dev@example.com
+```bash
+insites-cli env add dev --email dev@example.com --instance-uuid your-uuid
+```
 
-staging:
-  url: https://your-staging-instance.platformos.com
-  token: your-staging-token
-  email: staging@example.com
+This produces a `.insites` file like:
 
-production:
-  url: https://your-prod-instance.platformos.com
-  token: your-prod-token
-  email: prod@example.com
+```json
+{
+  "dev": {
+    "instance_uuid": "your-instance-uuid",
+    "token": "your-token",
+    "email": "dev@example.com",
+    "url": "https://your-instance.staging.oregon.platform-os.com",
+    "key": "your-key"
+  }
+}
 ```
 
 ### Required Fields
 
-- `url`: Instance URL (obtained from Insites dashboard)
-- `token`: API authentication token
-- `email`: Associated account email
+| Field | Description |
+|-------|-------------|
+| `instance_uuid` | Unique identifier for the instance (from Insites dashboard) |
+| `token` | API authentication token |
+| `email` | Account email associated with the instance |
+| `url` | Instance URL for deployment |
+| `key` | Authentication key |
 
 ### Security Best Practices
 
-- Never commit `.pos` file to version control
+- Never commit `.insites` file to version control
 - Use environment variables for sensitive data
 - Rotate tokens regularly
 - Restrict token permissions to necessary scopes
@@ -78,25 +83,25 @@ Default environment is typically `development`.
 
 ### Custom Configuration Paths
 
-Set custom `.pos` file location:
+Set custom `.insites` file location:
 
 ```bash
-insites-cli deploy development --config /path/to/.pos
+insites-cli deploy development --config /path/to/.insites
 ```
 
 ### Multiple Projects
 
-Maintain separate `.pos` files per project:
+Maintain separate `.insites` files per project:
 
 ```bash
-insites-cli sync staging --config ./config/.pos
+insites-cli sync staging --config ./config/.insites
 ```
 
 ## Common Issues
 
 - **Token Expired**: Regenerate in Insites dashboard
 - **Invalid URL**: Ensure HTTPS format without trailing slash
-- **Credentials Not Found**: Verify `.pos` file exists and is readable
+- **Credentials Not Found**: Verify `.insites` file exists and is readable
 
 ## See Also
 

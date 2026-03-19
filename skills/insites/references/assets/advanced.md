@@ -13,17 +13,7 @@ This adds explicit version info to URLs while preserving auto-versioning.
 
 ## Asset Serving from Multiple CDNs
 
-Configure multiple CDN endpoints for geographic distribution:
-
-```yaml
-# .pos file
-environments:
-  production:
-    cdn_urls:
-      default: 'https://cdn1.example.com'
-      us: 'https://cdn-us.example.com'
-      eu: 'https://cdn-eu.example.com'
-```
+The platform provides a single CDN endpoint per environment. There is no multi-CDN configuration in the `.insites` file — that file only contains environment credentials (`instance_uuid`, `token`, `email`, `url`, `key`). The `asset_url` filter automatically uses the correct CDN for the current environment.
 
 Use Liquid to select appropriate CDN:
 

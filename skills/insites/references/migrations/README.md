@@ -6,6 +6,8 @@ Migrations execute code outside the regular application cycle — useful for see
 
 `app/migrations/`
 
+> **Module path:** When building a module, use `modules/<module_name>/private/migrations/` for migration files. Migrations are typically private since they are internal to the module's data setup.
+
 ## File Naming
 
 Files use UTC timestamp prefix for chronological execution:

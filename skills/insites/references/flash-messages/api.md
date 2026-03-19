@@ -2,77 +2,85 @@
 
 ## Overview
 
-Insites provides flash message helpers through `pos-module-core` for setting and rendering temporary notifications.
+Insites provides flash messages using the built-in `session` tag and `context.session` for setting and rendering temporary notifications.
 
-## Core Helpers
+## Setting Flash Messages
 
 ### Redirect with Flash Message
 
-Set flash message and redirect in a single action:
+Set flash message and redirect:
 
 ```liquid
-{% include 'modules/core/helpers/redirect_to',
-  url: '/dashboard',
-  notice: 'user.profile_updated'
+{% liquid
+  parse_json flash
+    { "notice": "user.profile_updated", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/dashboard'
+  break
 %}
 ```
 
-The `notice` parameter accepts:
+The `notice` value accepts:
 
-- Localization key: `'user.profile_updated'` -> resolves via i18n
+- Localization key: `'user.profile_updated'` -> resolves via `| t` filter in templates
 - Dynamic text: `'Welcome ' | append: user.name`
 
-### Flash Message Parameters
+### Flash Message Properties
 
-The `redirect_to` helper accepts these flash parameters:
+The flash JSON object supports these properties:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Property | Type | Description |
+|----------|------|-------------|
 | `notice` | String | Success/info message (notice type) |
 | `alert` | String | Error message (alert type) |
 | `warning` | String | Warning message (warning type) |
 | `info` | String | Informational message (info type) |
-| `url` | String | Redirect destination (required) |
+| `from` | String | Pathname to match for auto-clear |
 
-### Set Flash Message Only
-
-Set flash without immediate redirect:
+### Set Flash Message Only (no redirect)
 
 ```liquid
-{% include 'modules/core/helpers/flash/publish',
-  notice: 'changes_saved'
+{% liquid
+  parse_json flash
+    { "notice": "changes_saved", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
 %}
 ```
 
-Available flash types: `notice`, `alert`, `warning`, `info`
+### Simple redirect (no flash)
+
+```liquid
+{% redirect_to '/dashboard' %}
+```
 
 ## Getting Flash Messages
 
 ### Retrieve Flash from Session
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
-
-{% if sflash %}
-  Notice: {{ sflash.notice }}
-  Alert: {{ sflash.alert }}
-{% endif %}
+{% liquid
+  assign flash = context.session.sflash | parse_json
+  if flash
+    assign notice = flash.notice
+    assign alert = flash.alert
+  endif
+%}
 ```
-
-The helper populates `sflash` variable with current flash data.
 
 ### Check Flash Existence
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
-
-{% if sflash.notice %}
-  {% assign notice_text = sflash.notice | t %}
-{% endif %}
-
-{% if sflash.alert %}
-  {% assign error_text = sflash.alert | t %}
-{% endif %}
+{% liquid
+  assign flash = context.session.sflash | parse_json
+  if flash.notice
+    assign notice_text = flash.notice | t
+  endif
+  if flash.alert
+    assign error_text = flash.alert | t
+  endif
+%}
 ```
 
 ## Clearing Flash Messages
@@ -80,7 +88,7 @@ The helper populates `sflash` variable with current flash data.
 ### Automatic Clearing
 
 Flash messages automatically clear when:
-- Page pathname changes
+- Page pathname changes (via layout flash handling)
 - Session expires
 - Explicit clear is called
 
@@ -89,7 +97,7 @@ Flash messages automatically clear when:
 Clear flash messages programmatically:
 
 ```liquid
-{% include 'modules/core/helpers/flash/clear' %}
+{% session sflash = null %}
 ```
 
 ## JavaScript Toast Implementation
@@ -137,10 +145,13 @@ Flash messages follow this structure in session:
 Set multiple flash messages in redirect:
 
 ```liquid
-{% include 'modules/core/helpers/redirect_to',
-  url: '/form',
-  notice: 'partial_save',
-  warning: 'some_fields_required'
+{% liquid
+  parse_json flash
+    { "notice": "partial_save", "warning": "some_fields_required", "from": {{ context.location.pathname | json }} }
+  endparse_json
+  session sflash = flash
+  redirect_to '/form'
+  break
 %}
 ```
 
@@ -151,11 +162,10 @@ Only one message per type is supported simultaneously.
 Apply Liquid filters to flash messages:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
-
-{% if sflash.notice %}
+{%- assign flash = context.session.sflash | parse_json -%}
+{% if flash.notice %}
   <div class="flash">
-    {{ sflash.notice | t | upcase }}
+    {{ flash.notice | t | upcase }}
   </div>
 {% endif %}
 ```

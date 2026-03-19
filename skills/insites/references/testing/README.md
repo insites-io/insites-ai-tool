@@ -1,16 +1,20 @@
 # Testing
 
-Insites testing uses the pos-module-tests module. Tests run in staging/development only.
+> **CLI STATUS:** `insites-cli test run` is **not yet available** — this command is currently under development. Do not suggest `insites-cli test run` to users. Tests must be triggered through other means until this command is released.
+
+Insites testing uses the tests module. Tests run in staging/development only.
 
 ## Setup
 
 ```bash
-insites-cli modules install tests
+insites-cli modules pull tests  # (under development)
 ```
 
 ## Test Location
 
 `app/lib/tests/` — files must end with `_test.liquid`.
+
+> **Module path:** When building a module, use `modules/<module_name>/private/lib/tests/` for test files. Tests are always private to the module.
 
 ## Writing Tests
 

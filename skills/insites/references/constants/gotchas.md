@@ -78,7 +78,7 @@ Constant not working?
 ├── Value is blank?
 │   ├── Run insites-cli constants list ENV
 │   ├── Check exact name (case-sensitive)
-│   ├── Verify correct environment in .pos
+│   ├── Verify correct environment in .insites
 │   └── Set with insites-cli constants set if missing
 ├── Value is wrong?
 │   ├── Check you are on the right environment

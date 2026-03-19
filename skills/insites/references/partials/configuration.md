@@ -7,6 +7,8 @@ All partials reside in `app/views/partials/`. The path in render/function maps d
 - `{% render 'products/card' %}` → `app/views/partials/products/card.liquid`
 - `{% function r = 'lib/commands/products/create' %}` → `app/views/partials/lib/commands/products/create.liquid`
 
+> **Module path:** In modules, partials live in `modules/<module_name>/public/views/partials/` (accessible to the app and other modules) or `modules/<module_name>/private/views/partials/` (internal only). The render/function path remains the same — the platform resolves the module prefix automatically.
+
 ## Naming Rules
 
 - NO underscore prefix (use `card.liquid`, NOT `_card.liquid`)

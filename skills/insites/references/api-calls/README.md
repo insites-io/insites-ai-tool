@@ -6,6 +6,8 @@ Insites can call external REST APIs via the `api_calls` directory or using `down
 
 `app/api_calls/`
 
+> **Module path:** When building a module, use `modules/<module_name>/public/api_calls/` for API call definitions accessible to the app and other modules, or `modules/<module_name>/private/api_calls/` for API calls only used within the module.
+
 ## API Call Definition
 
 ```liquid

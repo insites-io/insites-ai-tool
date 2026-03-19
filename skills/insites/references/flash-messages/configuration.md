@@ -2,30 +2,25 @@
 
 ## Overview
 
-Flash messages in Insites are temporary notifications displayed to users via the `pos-module-core` module. They persist across a single redirect and are automatically cleared.
+Flash messages in Insites are temporary notifications displayed to users. They persist across a single redirect and are automatically cleared. Flash data is stored in the session via the `session` tag and read via `context.session`.
 
-## Module Setup
+## Setup
 
-Flash messages require `pos-module-core` to be installed and included in your module dependencies.
+### Include Flash Handling in Layout
 
-### Enable in Module Configuration
-
-In `app/modules/module.yml`:
-
-```yaml
-dependencies:
-  - pos-module-core
-```
-
-### Include Flash Helper in Layout
-
-Add to main layout file (`app/views/layouts/application.liquid`):
+Add to your layout file (`app/views/layouts/application.liquid`) before `</body>`:
 
 ```liquid
-{% include 'modules/core/helpers/flash/get_flash' %}
+{% liquid
+  assign flash = context.session.sflash | parse_json
+  if context.location.pathname != flash.from or flash.force_clear
+    session sflash = null
+  endif
+  render 'shared/toasts', params: flash
+%}
 ```
 
-This initializes the flash context for the current request.
+This reads the flash from session, clears it after display, and renders the toast partial.
 
 ## Flash Message Types
 
@@ -43,12 +38,14 @@ Insites supports four flash message types:
 Flash messages are stored in the session and cleared based on page navigation:
 
 ```liquid
-{% if sflash %}
-  {% assign current_path = request.url_path %}
-  {% if current_path != previous_path %}
-    {% assign sflash = nil %}
-  {% endif %}
-{% endif %}
+{% liquid
+  assign flash = context.session.sflash | parse_json
+  if flash
+    if context.location.pathname != flash.from
+      session sflash = null
+    endif
+  endif
+%}
 ```
 
 ## Flash Storage Structure
@@ -73,29 +70,23 @@ Recommended layout structure for flash messages:
 
 ```liquid
 <!DOCTYPE html>
-<html>
+<html class="pos-app">
 <head>
-  <title>{{ page.title }}</title>
+  <title>{{ context.page.metadata.title | default: "My App" }}</title>
+  {% render 'modules/common-styling/init' %}
 </head>
 <body>
-  {% include 'modules/core/helpers/flash/get_flash' %}
+  {{ content_for_layout }}
 
-  {% if sflash %}
-    <div class="flash-container">
-      {% if sflash.notice %}
-        <div class="flash notice">
-          {{ sflash.notice | t }}
-        </div>
-      {% endif %}
-      {% if sflash.alert %}
-        <div class="flash alert">
-          {{ sflash.alert | t }}
-        </div>
-      {% endif %}
-    </div>
-  {% endif %}
-
-  {{ page.body }}
+  {% liquid
+    assign flash = context.session.sflash | parse_json
+    if flash
+      if context.location.pathname != flash.from or flash.force_clear
+        session sflash = null
+      endif
+    endif
+    render 'shared/toasts', params: flash
+  %}
 </body>
 </html>
 ```
@@ -167,7 +158,7 @@ app/
     └── mutations/
 ```
 
-Flash helpers are provided by `pos-module-core` module.
+Flash messages use the built-in `session` tag and `context.session` object.
 
 ## Best Practices
 

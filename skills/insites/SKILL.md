@@ -35,10 +35,10 @@ You **MUST follow guidance exactly as written**, without omission, substitution,
 - **After ANY file change, you MUST run the linter:**
 
 ```bash
-platformos-check
+insites-cli audit
 ```
 
-Must pass with 0 errors before deployment. 
+Must pass with 0 errors before deployment.
 
 **NO OPTIONAL REVIEW**
 
@@ -47,9 +47,9 @@ Must pass with 0 errors before deployment.
 - [ ] Pages have ONE HTTP method each
 - [ ] NO raw HTML/JS/CSS in pages (pages = controllers)
 - [ ] NO GraphQL calls from partials (pages only)
-- [ ] NO hardcoded user-facing text in partials (use translations)
+- [ ] NO hardcoded user-facing text in partials (use translations when available)
 - [ ] NO hardcoded credentials (use `context.constants`)
-- [ ] `platformos-check` passes
+- [ ] `insites-cli audit` passes
 
 
 ## 3. Quick Decision Trees
@@ -69,7 +69,7 @@ Need a page or endpoint?
 ├─ JavaScript endpoint → pages/ (with .js.liquid extension)
 ├─ Form submission handler → pages/ (method: post) + forms/
 ├─ File download/redirect → pages/ + routing/
-├─ Admin-only page → pages/ + authentication/ (pos-module-user)
+├─ Admin-only page → pages/ + authorization_policies/
 ├─ Layout wrapper → layouts/
 └─ Reusable UI component → partials/
 ```
@@ -97,7 +97,7 @@ Need data operations?
 ```
 Need business logic?
 ├─ Encapsulate a create/update/delete operation → commands/ (build → check → execute)
-├─ Validate user input → commands/ (check stage with core validators)
+├─ Validate user input → commands/ (check stage with validators)
 ├─ React to something that happened → events-consumers/
 ├─ Run code asynchronously → background-jobs/
 ├─ Run code on a schedule → background-jobs/ (with delay)
@@ -110,16 +110,15 @@ Need business logic?
 
 ```
 Need auth?
-├─ Get current user → authentication/ (modules/user/queries/user/current)
-├─ Check if user can do something → authentication/ (modules/user/helpers/can_do)
-├─ Block unauthorized access (403) → authentication/ (can_do_or_unauthorized)
-├─ Redirect if not permitted → authentication/ (can_do_or_redirect)
+├─ Get current user → authentication/ (context.current_user + GraphQL)
+├─ Check if user can do something → authorization_policies/ or inline check
+├─ Block unauthorized access (403) → authorization_policies in page front matter
+├─ Redirect if not permitted → inline unless/redirect_to pattern
 ├─ Sign in a user → authentication/ (sign_in tag)
-├─ Define custom roles/permissions → authentication/ (override permissions.liquid)
-├─ OAuth2/social login → modules/user/
+├─ Define custom roles/permissions → authorization_policies/
+├─ OAuth2/social login → authentication/
 ├─ CSRF protection → forms/ (authenticity_token)
-├─ Spam protection (reCAPTCHA/hCaptcha) → forms/ (spam_protection tag)
-└─ NEVER use authorization_policies/ directly → always use pos-module-user
+└─ Spam protection (reCAPTCHA/hCaptcha) → forms/ (spam_protection tag)
 ```
 
 ### "I need Liquid templating"
@@ -157,7 +156,7 @@ Need Liquid help?
 │   ├─ context.params → HTTP parameters
 │   ├─ context.session → session storage
 │   ├─ context.location → URL info
-│   ├─ context.current_user → user data (use module helper instead)
+│   ├─ context.current_user → user data
 │   ├─ context.constants → secrets/config
 │   ├─ context.environment → staging/production
 │   ├─ context.exports → exported partial variables
@@ -215,7 +214,7 @@ Need integrations?
 ├─ Stripe payments → modules/payments/
 ├─ OpenAI/AI features → modules/openai/
 ├─ WebSocket/chat → modules/chat/
-├─ OAuth2 providers → modules/user/ (OAuth2 support)
+├─ OAuth2 providers → authentication/ (OAuth2 flow with sign_in tag)
 ├─ Webhook receiver → pages/ (POST endpoint)
 └─ Store API keys/secrets → constants/
 ```
@@ -225,13 +224,13 @@ Need integrations?
 ```
 Need deployment?
 ├─ Deploy to environment → deployment/ (insites-cli deploy)
-├─ Watch logs → cli/ (insites-cli logs)
+├─ Watch logs → cli/ (insites-cli logsv2)
 ├─ Run Liquid/GraphQL ad-hoc → cli/ (insites-cli exec)
-├─ Install modules → cli/ (insites-cli modules install)
+├─ Install modules → cli/ (insites-cli modules pull) (under development)
 ├─ Set environment constants → constants/ (insites-cli constants set)
 ├─ Run migrations → migrations/
-├─ Run tests → testing/
-├─ Lint/validate code → cli/ (platformos-check)
+├─ Run tests → (testing references not yet ready — do not use)
+├─ Lint/validate code → cli/ (insites-cli audit)
 ├─ Sync files in development → cli/ (insites-cli sync)
 └─ Environment configuration → configuration/
 ```
@@ -315,7 +314,7 @@ Use the decision trees above to identify which category applies, then load the m
 | Constants | `references/constants/` |
 | Configuration | `references/configuration/` |
 | Assets | `references/assets/` |
-| Translations | `references/translations/` |
+| ~~Translations~~ | ~~`references/translations/`~~ *(not yet ready — do not use)* |
 | Sessions | `references/sessions/` |
 | Caching | `references/caching/` |
 
@@ -329,7 +328,7 @@ Use the decision trees above to identify which category applies, then load the m
 |----------|-----------|
 | CLI | `references/cli/` |
 | Deployment | `references/deployment/` |
-| Testing | `references/testing/` |
+| ~~Testing~~ | ~~`references/testing/`~~ *(not yet ready — do not use)* |
 
 ## Critical Architecture Rules
 
@@ -351,7 +350,7 @@ Call queries via {% function result = 'lib/queries/...' %}
 ### 3. Command Pattern (build → check → execute)
 ```
 All create/update/delete operations go through Commands
-Commands use pos-module-core helpers for build, check, execute
+Commands use inline build → check → execute pattern
 Validation errors are returned, not thrown
 ```
 → `references/commands/`
@@ -365,7 +364,21 @@ Optional: payments, payments_stripe, tests, chat, openai
 ```
 → `references/modules/`
 
-### 5. Liquid Coding Standards
+### 5. Extract Reusable Code (DRY)
+```
+When you write the same logic 2+ times, extract it into a reusable partial:
+- Repeated validation → lib/validations/presence.liquid
+- Repeated GraphQL execute → lib/commands/execute.liquid
+- Repeated UI blocks → shared/card.liquid, shared/pagination.liquid
+- Repeated auth checks → authorization_policies/ or lib/helpers/guard.liquid
+- Repeated data formatting → lib/helpers/format_price.liquid
+
+Use {% function %} for partials that return data.
+Use {% render %} for partials that produce HTML.
+```
+→ `references/partials/`
+
+### 6. Liquid Coding Standards
 ```
 Do NOT line-wrap statements within {% liquid %} blocks
 Keep each statement on a single line
@@ -395,10 +408,10 @@ project-root/
 │   ├── api_calls/                 # Third-party API integrations
 │   ├── translations/              # i18n content (YAML)
 │   ├── migrations/                # Data seeding and schema migrations
-│   ├── authorization_policies/    # DO NOT USE — use pos-module-user
+│   ├── authorization_policies/    # Access control policies
 │   └── config.yml                 # Feature flags and configuration
 ├── modules/                       # Downloaded/custom modules (READ-ONLY)
-├── .pos                           # Environment endpoints/project root sentinel file
+├── .insites                           # Environment endpoints/project root sentinel file
 └── package.json                   # (optional) Node.js dependencies
 ```
 
@@ -427,10 +440,8 @@ project-root/
 - Using `{% form %}` tag for HTML forms (use plain `<form>` with CSRF token)
 - Bypassing security (CSRF tokens, authorization)
 - Direct database access outside GraphQL
-- Deploying without running `platformos-check`
+- Deploying without running `insites-cli audit`
 - Syncing files outside `./app/`
-- Using `context.current_user` directly (use pos-module-user)
-- Using `authorization_policies/` directly (use pos-module-user)
 - Using Tailwind, Bootstrap, or custom CSS frameworks (use common-styling)
 - Hardcoding user-facing text (use translations)
 - Hardcoding API keys or secrets (use `context.constants`)
@@ -444,9 +455,3 @@ project-root/
 | Liquid Filters | https://documentation.platformos.com/api-reference/liquid/platformos-filters |
 | Liquid Tags | https://documentation.platformos.com/api-reference/liquid/platformos-tags |
 | Liquid Objects | https://documentation.platformos.com/api-reference/liquid/platformos-objects |
-| Core Module | https://github.com/Platform-OS/pos-module-core |
-| User Module | https://github.com/Platform-OS/pos-module-user |
-| Common Styling | https://github.com/Platform-OS/pos-module-common-styling |
-| Payments Module | https://github.com/Platform-OS/pos-module-payments |
-| Payments Stripe | https://github.com/Platform-OS/pos-module-payments-stripe |
-| Tests Module | https://github.com/Platform-OS/pos-module-tests |

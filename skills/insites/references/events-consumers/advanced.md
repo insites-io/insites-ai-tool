@@ -14,16 +14,14 @@ Keep event publication separate from consumer logic:
 
 ```liquid
 {%- comment -%}Page/action handler: Only publishes{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_registered',
-    object: new_user
--%}
+{%- background source_name: 'event:user_registered', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/user_registered/send_email', event: new_user -%}
+{%- endbackground -%}
 
 {%- comment -%}Consumer: Only consumes and acts{%- endcomment -%}
 {%- comment -%}File: app/lib/consumers/user_registered/send_email.liquid{%- endcomment -%}
-{%- include 'modules/core/commands/mail/send',
-    to: event.object.email,
-    template: 'welcome'
+{%- graphql _ = 'emails/send_welcome',
+    to: event.object.email
 -%}
 ```
 
@@ -53,10 +51,9 @@ Events represent immutable facts about what happened:
   created_at: 'now' | date: '%Y-%m-%dT%H:%M:%SZ'
 } -%}
 
-{%- include 'modules/core/commands/events/publish',
-    type: 'order_created',
-    object: event_snapshot
--%}
+{%- background source_name: 'event:order_created', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Consumer logic using event_snapshot data {%- endcomment -%}
+{%- endbackground -%}
 ```
 
 ### Benefits
@@ -107,16 +104,14 @@ This consumer coordinates all dependent operations
 
 {%- if g.inventory_decrement -%}
   {%- comment -%}Step 2: Send confirmation email{%- endcomment -%}
-  {%- include 'modules/core/commands/mail/send',
-      to: event.object.customer_email,
-      template: 'order_confirmed'
+  {%- graphql _ = 'emails/send_order_confirmed',
+      to: event.object.customer_email
   -%}
 
   {%- comment -%}Step 3: Trigger fulfillment{%- endcomment -%}
-  {%- include 'modules/core/commands/events/publish',
-      type: 'order_ready_for_fulfillment',
-      object: event.object
-  -%}
+  {%- background source_name: 'event:order_ready_for_fulfillment', priority: 'default', max_attempts: 3 -%}
+    {%- comment -%} Fulfillment consumers here {%- endcomment -%}
+  {%- endbackground -%}
 {%- endif -%}
 ```
 
@@ -130,19 +125,9 @@ Publisher: Queue a job instead of publishing event
 Job handler: Executes steps sequentially
 {%- endcomment -%}
 
-{%- include 'modules/core/commands/jobs/enqueue',
-    job: 'process_order',
-    args: {
-      order_id: order.id,
-      priority: 'high',
-      steps: [
-        'decrement_inventory',
-        'process_payment',
-        'send_confirmation',
-        'start_fulfillment'
-      ]
-    }
--%}
+{%- background source_name: 'job:process_order', priority: 'high', max_attempts: 3 -%}
+  {%- comment -%} Sequential steps: decrement_inventory, process_payment, send_confirmation, start_fulfillment {%- endcomment -%}
+{%- endbackground -%}
 ```
 
 ## Error Recovery Patterns
@@ -173,13 +158,10 @@ Executes when other consumers fail
 {%- endgraphql -%}
 
 {%- comment -%}Alert admin{%- endcomment -%}
-{%- include 'modules/core/commands/mail/send',
+{%- graphql _ = 'emails/send_dead_letter_alert',
     to: settings.admin_email,
-    template: 'dead_letter_alert',
-    variables: {
-      event_type: event.type,
-      event_id: g.dead_letter_create.dead_letter.id
-    }
+    event_type: event.type,
+    event_id: g.dead_letter_create.dead_letter.id
 -%}
 ```
 
@@ -192,18 +174,9 @@ Use job queue for automatic retries:
 Publisher: Enqueue job with retry config
 {%- endcomment -%}
 
-{%- include 'modules/core/commands/jobs/enqueue',
-    job: 'send_notification',
-    args: {
-      user_id: user.id,
-      message: message
-    },
-    retry: {
-      attempts: 3,
-      backoff_strategy: 'exponential',
-      backoff_seconds: 60
-    }
--%}
+{%- background source_name: 'job:send_notification', priority: 'default', max_attempts: 3 -%}
+  {%- comment -%} Notification logic with automatic retry on failure {%- endcomment -%}
+{%- endbackground -%}
 
 {%- comment -%}
 Consumer (running as job):
@@ -249,9 +222,8 @@ Handles partial failures gracefully
 {%- comment -%}Try to send welcome email{%- endcomment -%}
 {%- if event.object.email -%}
   {%- capture email_result -%}
-    {%- include 'modules/core/commands/mail/send',
-        to: event.object.email,
-        template: 'welcome'
+    {%- graphql _ = 'emails/send_welcome',
+        to: event.object.email
     -%}
   {%- endcapture -%}
 
@@ -340,10 +312,9 @@ Integration test: Publish event and verify consumer execution
 {%- assign test_user = g.test_user_create.user -%}
 
 {%- comment -%}Publish event{%- endcomment -%}
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_created',
-    object: test_user
--%}
+{%- background source_name: 'event:user_created', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/user_created/send_welcome_email', event: test_user -%}
+{%- endbackground -%}
 
 {%- comment -%}Wait for async processing{%- endcomment -%}
 {%- comment -%}Note: Timing depends on platform{%- endcomment -%}
@@ -395,10 +366,9 @@ subscription_created
 **Step 1: Initial event**
 
 ```liquid
-{%- include 'modules/core/commands/events/publish',
-    type: 'user_registered',
-    object: new_user
--%}
+{%- background source_name: 'event:user_registered', priority: 'default', max_attempts: 3 -%}
+  {%- function _ = 'lib/consumers/user_registered/create_profile', event: new_user -%}
+{%- endbackground -%}
 ```
 
 **Step 2: First consumer publishes next event**
@@ -422,10 +392,9 @@ File: app/lib/consumers/user_registered/create_profile.liquid
 {%- endgraphql -%}
 
 {%- if g.user_profile_create.user_profile -%}
-  {%- include 'modules/core/commands/events/publish',
-      type: 'profile_created',
-      object: g.user_profile_create.user_profile
-  -%}
+  {%- background source_name: 'event:profile_created', priority: 'default', max_attempts: 3 -%}
+    {%- comment -%} Profile created consumers here {%- endcomment -%}
+  {%- endbackground -%}
 {%- endif -%}
 ```
 

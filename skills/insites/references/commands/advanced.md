@@ -25,11 +25,9 @@ For operations that must succeed or fail atomically, wrap multiple mutations in 
 ```liquid
 {% if object.valid %}
   {% transaction %}
-    {% function object = 'modules/core/commands/execute',
-      mutation_name: 'orders/create',
-      selection: 'record_create',
-      object: object
-    %}
+    {% graphql r = 'orders/create', args: object %}
+    {% assign object = r.record_create %}
+    {% hash_assign object['valid'] = true %}
 
     {% for item in items %}
       {% parse_json line_item %}
@@ -39,12 +37,7 @@ For operations that must succeed or fail atomically, wrap multiple mutations in 
           "quantity": {{ item.quantity | json }}
         }
       {% endparse_json %}
-      {% function line_item = 'modules/core/commands/build', object: line_item %}
-      {% function line_item = 'modules/core/commands/execute',
-        mutation_name: 'order_items/create',
-        selection: 'record_create',
-        object: line_item
-      %}
+      {% graphql li = 'order_items/create', args: line_item %}
     {% endfor %}
   {% endtransaction %}
 {% endif %}
@@ -57,7 +50,21 @@ If any mutation inside the transaction fails, all changes are rolled back.
 When built-in validators are not sufficient, add custom checks after the standard check stage.
 
 ```liquid
-{% function object = 'modules/core/commands/check', object: object, validators: validators %}
+{% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
+
+{% if object.start_date == blank %}
+  {% assign field_errors = c.errors.start_date | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['start_date'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% if object.end_date == blank %}
+  {% assign field_errors = c.errors.end_date | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['end_date'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% assign object = object | hash_merge: c %}
 
 {% comment %} Custom: ensure end_date is after start_date {% endcomment %}
 {% if object.valid %}
@@ -94,10 +101,10 @@ Complex workflows can be built by calling commands from within commands. Keep ea
   %}
 
   {% if payment.valid %}
-    {% function _ = 'modules/core/commands/events/publish',
-      type: 'order_created',
-      object: order
-    %}
+    {% comment %} Dispatch side effects {% endcomment %}
+    {% background source_name: 'event:order_created', priority: 'default', max_attempts: 3 %}
+      {% function _ = 'lib/consumers/order_created/notify', event: order %}
+    {% endbackground %}
   {% else %}
     {% comment %} Roll back the order if payment fails {% endcomment %}
     {% function _ = 'lib/commands/orders/cancel', id: order.id %}
@@ -113,16 +120,35 @@ Complex workflows can be built by calling commands from within commands. Keep ea
 
 ## Optimizing Validator Performance
 
-The `uniqueness` validator issues a database query for each field it checks. Minimize its use and place it last in the validators array so cheaper validators (presence, numericality) fail first.
+The uniqueness check issues a database query for each field it checks. Minimize its use and place it last in the validation chain so cheaper checks (presence, format) fail first. Use an `{% if c.valid %}` guard so the expensive query only runs when basic validations pass.
 
 ```liquid
-{% parse_json validators %}
-  [
-    { "name": "presence", "property": "email" },
-    { "name": "format", "property": "email", "options": { "pattern": "^[^@]+@[^@]+\\.[^@]+$" } },
-    { "name": "uniqueness", "property": "email", "options": { "table": "user_profile" } }
-  ]
-{% endparse_json %}
+{% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
+
+{% if object.email == blank %}
+  {% assign field_errors = c.errors.email | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['email'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% assign email_match = object.email | matches: '^[^@]+@[^@]+\.[^@]+$' %}
+{% if email_match != true %}
+  {% assign field_errors = c.errors.email | default: '[]' | parse_json | add_to_array: "has an invalid format" %}
+  {% hash_assign c['errors']['email'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+
+{% if c.valid %}
+  {% comment %} Run expensive uniqueness query only if basic validations pass {% endcomment %}
+  {% graphql r = 'records/count', property_name: 'email', property_value: object.email, table: 'user_profile' %}
+  {% if r.records.total_entries > 0 %}
+    {% assign field_errors = c.errors.email | default: '[]' | parse_json | add_to_array: "is already taken" %}
+    {% hash_assign c['errors']['email'] = field_errors %}
+    {% hash_assign c['valid'] = false %}
+  {% endif %}
+{% endif %}
+
+{% assign object = object | hash_merge: c %}
 ```
 
 ## Handling File Uploads in Commands
@@ -161,14 +187,25 @@ For operations that might be retried (e.g., background jobs with `max_attempts >
   {% assign object = object | hash_merge: valid: true, errors: {} %}
 {% else %}
   {% comment %} Standard build/check/execute {% endcomment %}
-  {% function object = 'modules/core/commands/build', object: object %}
-  {% function object = 'modules/core/commands/check', object: object, validators: validators %}
+  {% parse_json object %}
+    {
+      "external_id": {{ external_id | json }},
+      "title": {{ title | json }}
+    }
+  {% endparse_json %}
+
+  {% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
+  {% if object.title == blank %}
+    {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+    {% hash_assign c['errors']['title'] = field_errors %}
+    {% hash_assign c['valid'] = false %}
+  {% endif %}
+  {% assign object = object | hash_merge: c %}
+
   {% if object.valid %}
-    {% function object = 'modules/core/commands/execute',
-      mutation_name: 'products/create',
-      selection: 'record_create',
-      object: object
-    %}
+    {% graphql r = 'products/create', args: object %}
+    {% assign object = r.record_create %}
+    {% hash_assign object['valid'] = true %}
   {% endif %}
 {% endif %}
 {% return object %}
@@ -179,11 +216,21 @@ For operations that might be retried (e.g., background jobs with `max_attempts >
 Use the `{% log %}` tag to inspect command state at each stage:
 
 ```liquid
-{% function object = 'modules/core/commands/build', object: object %}
-{% log object, type: 'debug' %}
+{% comment %} After BUILD {% endcomment %}
+{% parse_json object %}
+  { "title": {{ title | json }}, "price": {{ price | json }} }
+{% endparse_json %}
+{% log object, type: 'debug: after build' %}
 
-{% function object = 'modules/core/commands/check', object: object, validators: validators %}
-{% log object, type: 'debug' %}
+{% comment %} After CHECK {% endcomment %}
+{% assign c = '{ "errors": {}, "valid": true }' | parse_json %}
+{% if object.title == blank %}
+  {% assign field_errors = c.errors.title | default: '[]' | parse_json | add_to_array: "can't be blank" %}
+  {% hash_assign c['errors']['title'] = field_errors %}
+  {% hash_assign c['valid'] = false %}
+{% endif %}
+{% assign object = object | hash_merge: c %}
+{% log object, type: 'debug: after check' %}
 ```
 
 Monitor output with `insites-cli logs` to see the object state at each step.
@@ -192,7 +239,7 @@ Monitor output with `insites-cli logs` to see the object state at each step.
 
 - [README.md](README.md) -- Commands overview
 - [configuration.md](configuration.md) -- File layout and setup
-- [api.md](api.md) -- Core helper signatures
+- [api.md](api.md) -- Validator helpers and stage details
 - [patterns.md](patterns.md) -- Standard patterns to build on
 - [gotchas.md](gotchas.md) -- Common errors and limits
 - [Background Jobs](../background-jobs/) -- Async execution details

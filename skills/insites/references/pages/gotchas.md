@@ -26,13 +26,15 @@ Common errors, limits, and debugging guidance for page files.
 
 **Cause:** Two page files define the same slug and method combination.
 
-**Solution:** Ensure each slug + method pair is unique. Use `platformos-check` to detect conflicts before deploying.
+**Solution:** Ensure each slug + method pair is unique. Use `insites-cli audit` to detect conflicts before deploying.
 
 ### "Page renders blank content"
 
 **Cause:** The page calls `{% render %}` but the partial path is wrong, or the partial is empty.
 
 **Solution:** Verify the partial path matches a file at `app/views/partials/<path>.liquid`. Check for typos in the path string.
+
+> **Module note:** If the page or partial is inside a module, check `modules/<module_name>/public/views/` or `private/views/` instead.
 
 ### "Variables from partial are not accessible in page"
 
@@ -72,7 +74,7 @@ Page not working?
 │   ├── Check slug matches URL exactly
 │   ├── Check method matches request method
 │   ├── Check file is in app/views/pages/
-│   └── Run platformos-check for conflicts
+│   └── Run insites-cli audit for conflicts
 ├── Getting blank page?
 │   ├── Check partial path is correct
 │   ├── Check partial file exists

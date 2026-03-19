@@ -1,59 +1,48 @@
 # Authentication -- Configuration Reference
 
-This document covers all configuration files, role definitions, and session options for the pos-module-user authentication system.
+This document covers all configuration files, role definitions, and session options for the authentication system.
 
 ## Permission File
 
 The permissions matrix maps roles to action strings. Override it to define custom roles.
 
-### Default location
+### Location
 
-```
-modules/user/public/lib/queries/role_permissions/permissions.liquid
-```
+Define the permissions map inline using `parse_json` wherever you need to check permissions:
 
-### Override path
-
-```
-app/modules/user/public/lib/queries/role_permissions/permissions.liquid
-```
-
-### Setup
-
-```bash
-mkdir -p app/modules/user/public/lib/queries/role_permissions
-cp modules/user/public/lib/queries/role_permissions/permissions.liquid \
-   app/modules/user/public/lib/queries/role_permissions/permissions.liquid
-```
-
-### Permission file format
+### Permission map format
 
 ```liquid
-{% parse_json data %}
-{
-  "admin": [
-    "admin.view",
-    "users.manage",
-    "products.create",
-    "products.update",
-    "products.delete"
-  ],
-  "editor": [
-    "article.create",
-    "article.update",
-    "article.delete",
-    "article.view"
-  ],
-  "viewer": [
-    "article.view"
-  ],
-  "superadmin": []
-}
-{% endparse_json %}
-{% return data %}
+{% liquid
+  parse_json permissions
+    {
+      "anonymous": ["sessions.create", "users.register"],
+      "authenticated": ["sessions.destroy"],
+      "admin": [
+        "admin_pages.view",
+        "admin.users.manage",
+        "products.create",
+        "products.update",
+        "products.delete"
+      ],
+      "editor": [
+        "article.create",
+        "article.update",
+        "article.delete",
+        "article.view"
+      ],
+      "viewer": [
+        "article.view"
+      ],
+      "superadmin": []
+    }
+  endparse_json
+%}
 ```
 
-**Important:** `superadmin` is listed with an empty array because it automatically bypasses every permission check. You must still include the key so the role is recognized.
+For reuse, place the permissions map in a dedicated partial that returns it via `{% return permissions %}`.
+
+**Important:** `superadmin` is listed with an empty array because the role check logic automatically grants all permissions to superadmins. You must still include the key so the role is recognized.
 
 ### Action string conventions
 
@@ -73,17 +62,31 @@ cp modules/user/public/lib/queries/role_permissions/permissions.liquid \
 
 ### Assigning roles to users
 
-Roles are stored on the user record. Set them via GraphQL when creating or updating a user:
+Roles are stored as a `property_array` on the user record. Set them via GraphQL when creating or updating a user:
 
 ```graphql
-mutation set_role($id: ID!, $role: String!) {
-  user_update(id: $id, user: { properties: [{ name: "role", value: $role }] }) {
+mutation set_roles($id: ID!, $roles: [String!]!) {
+  user_update(id: $id, user: {
+    properties: [{ name: "roles", value_array: $roles }]
+  }) {
     id
   }
 }
 ```
 
-Or via a command partial that wraps the mutation.
+To read roles back, query with `property_array(name: "roles")`:
+
+```graphql
+query get_user($id: ID!) {
+  users(per_page: 1, filter: { id: { value: $id } }) {
+    results {
+      id
+      email
+      roles: property_array(name: "roles")
+    }
+  }
+}
+```
 
 ## Session Configuration
 
@@ -106,7 +109,7 @@ Or via a command partial that wraps the mutation.
 {% sign_out %}
 ```
 
-No parameters. Destroys the current session immediately.
+No parameters. Destroys the current session immediately. Under the hood this executes the `user_session_destroy` GraphQL mutation.
 
 ## CSRF Token Configuration
 
@@ -136,13 +139,8 @@ fetch('/api/endpoint', {
 
 ```
 app/
-├── modules/
-│   └── user/
-│       └── public/
-│           └── lib/
-│               └── queries/
-│                   └── role_permissions/
-│                       └── permissions.liquid    # Custom role definitions
+├── authorization_policies/
+│   └── admin_only.liquid                          # Page-level authorization policy
 ├── views/
 │   └── pages/
 │       ├── sessions/
@@ -162,7 +160,7 @@ app/
 ## Environment Considerations
 
 - **Staging vs Production:** Permission files are deployed with the codebase. Role data lives in the database. Ensure test users on staging have appropriate roles.
-- **Module updates:** When upgrading `pos-module-user`, re-check that your override file is still compatible with the module's expected return format.
+- **Authorization policies:** When using `authorization_policies/` in page front matter, the platform enforces them before the page renders. This is the cleanest approach for full-page guards.
 
 ## See Also
 

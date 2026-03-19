@@ -16,6 +16,8 @@ app/
 
 Every schema file lives in `app/schema/` and has a `.yml` extension.
 
+> **Module path:** In modules, schema files live in `modules/<module_name>/public/schema/`. Module schemas are always public so the app and other modules can query the data.
+
 ## YAML Format
 
 A schema file has two top-level keys: `name` and `properties`.

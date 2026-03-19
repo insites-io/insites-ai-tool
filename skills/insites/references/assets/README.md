@@ -1,10 +1,14 @@
 # Assets (Static Files & CDN)
 
+> **CLI STATUS:** `insites-cli assets` (upload/list/remove) is **not yet available** — this command is currently under development. Do not suggest any `insites-cli assets` subcommands to users. Assets are deployed as part of `insites-cli deploy` or `insites-cli sync`.
+
 Static files (images, fonts, CSS, JavaScript) served via CDN.
 
 ## Location
 
 `app/assets/`
+
+> **Module path:** When building a module, use `modules/<module_name>/public/assets/` for assets accessible to the app and other modules, or `modules/<module_name>/private/assets/` for assets only used within the module.
 
 ## Directory Structure
 

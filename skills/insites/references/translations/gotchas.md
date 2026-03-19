@@ -184,7 +184,7 @@ If translation files missing after deploy, keys show as fallback text.
 <!-- System doesn't know which language to fall back to -->
 ```
 
-Always set `default_language` in `.pos` configuration.
+Always set `default_language` in `.insites` configuration.
 
 ## Database Translations Not Syncing
 

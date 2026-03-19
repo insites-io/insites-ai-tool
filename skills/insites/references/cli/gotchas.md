@@ -19,7 +19,7 @@ insites-cli deploy production
 ```
 
 Production should only receive through:
-1. platformos-check validation
+1. insites-cli audit validation
 2. Staging tests
 3. Formal deployment process
 
@@ -29,17 +29,17 @@ Production should only receive through:
 
 **Solution**:
 - Regenerate token in Insites dashboard
-- Update `.pos` file
-- Clear cached credentials: `insites-cli env clear-cache`
+- Update `.insites` file
+- Note: `insites-cli env clear-cache` does not exist. Manually update the `.insites` file instead.
 
 ### Configuration File Not Found
 
-**Issue**: "Cannot find .pos file"
+**Issue**: "Cannot find .insites file"
 
 **Solution**:
-- Verify `.pos` exists in project root
-- Check file permissions: `ls -la .pos`
-- Specify explicit path: `insites-cli sync dev --config /path/to/.pos`
+- Verify `.insites` exists in project root
+- Check file permissions: `ls -la .insites`
+- Specify explicit path: `insites-cli sync dev --config /path/to/.insites`
 
 ### Port Already in Use
 
@@ -61,7 +61,7 @@ lsof -i :3000 | kill -9
 - Review conflicting migrations
 - Resolve manually or create compensating migration
 
-## platformos-check Failures
+## Linting (insites-cli audit) Failures
 
 ### Syntax Errors
 
@@ -96,7 +96,7 @@ Ensure partial exists at correct path:
 Verify tag spelling and Insites support:
 
 ```bash
-platformos-check --help
+insites-cli audit --help
 ```
 
 ### Translation Keys
@@ -119,8 +119,8 @@ en:
 **Issue**: Logs filter returns no results
 
 **Solutions**:
-- Check environment is correct: `insites-cli logs dev`
-- Use `--follow` flag: `insites-cli logs dev --follow`
+- Check environment is correct: `insites-cli logsv2 dev`
+- Use `--follow` flag: `insites-cli logsv2 dev --follow`
 - Check application activity generating logs
 
 ### Filter Not Matching
@@ -128,8 +128,8 @@ en:
 Use exact filter values:
 
 ```bash
-insites-cli logs staging --filter "background_job"
-insites-cli logs staging --filter "api_call"
+insites-cli logsv2 staging --filter "background_job"
+insites-cli logsv2 staging --filter "api_call"
 ```
 
 ## Module Installation Problems
