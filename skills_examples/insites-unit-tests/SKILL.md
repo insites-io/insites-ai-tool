@@ -972,4 +972,4 @@ function contract = 'modules/tests/helpers/register_error',
 ## References
 
 - [Insites Documentation](https://docs.insites.io/)
-- [insites-cli Documentation](https://docs.insites.io/developer-guide/insites-cli/insites-cli)
+- [insites-cli Documentation](https://documentation.platformos.com/developer-guide/insites-cli/insites-cli)

@@ -927,9 +927,9 @@ endif
 
 ## References
 
-- [Adding an Admin Page](https://docs.insites.io/tutorials/user-management/add-admin-page)
-- [Assigning Roles to Users](https://docs.insites.io/tutorials/user-management/assign-roles)
-- [Authorization](https://docs.insites.io/tutorials/user-management/authorization-can-do)
-- [Roles and Permissions](https://docs.insites.io/tutorials/user-management/roles-and-permissions)
-- [Understanding User Module Endpoints](https://docs.insites.io/tutorials/user-management/understand-endpoints)
-- [Display Admin Link Based on Permissions](https://docs.insites.io/tutorials/user-management/display-admin-permission)
+- [Adding an Admin Page](https://documentation.platformos.com/tutorials/user-management/add-admin-page)
+- [Assigning Roles to Users](https://documentation.platformos.com/tutorials/user-management/assign-roles)
+- [Authorization](https://documentation.platformos.com/tutorials/user-management/authorization-can-do)
+- [Roles and Permissions](https://documentation.platformos.com/tutorials/user-management/roles-and-permissions)
+- [Understanding User Module Endpoints](https://documentation.platformos.com/tutorials/user-management/understand-endpoints)
+- [Display Admin Link Based on Permissions](https://documentation.platformos.com/tutorials/user-management/display-admin-permission)
