@@ -1,5 +1,5 @@
 ---
-name: pos-styling
+name: insites-styling
 description: Strict protocols for implementing consistent, professional UI using the Insites Common Styling module
 ---
 
@@ -928,7 +928,7 @@ This support file contains:
 
 ## References
 
-- [platformOS Common Styling Module](https://github.com/Platform-OS/pos-module-common-styling)
+- [Common Styling Module](https://github.com/Platform-OS/pos-module-common-styling)
 - [Using Common Styling Tutorial](https://documentation.platformos.com/get-started/contact-us-tutorial/using-common-styling)
-- [platformOS Documentation](https://documentation.platformos.com/)
+- [Insites Documentation](https://documentation.platformos.com/)
 - [Style Guide (on your instance)](https://YOUR-INSTANCE/style-guide)

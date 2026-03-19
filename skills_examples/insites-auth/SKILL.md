@@ -1,11 +1,11 @@
 ---
-name: pos-auth
+name: insites-auth
 description: Protocols for implementing user authentication in Insites using the User Module
 ---
 
 ## Overview
 
-This skill provides **absolute, non-negotiable protocols** for implementing user authentication in Insites applications using the `pos-module-user`. YOU MUST follow every instruction precisely. Authentication is security-critical—deviations introduce vulnerabilities that compromise user data and system integrity.
+This skill provides **absolute, non-negotiable protocols** for implementing user authentication in Insites applications. YOU MUST follow every instruction precisely. Authentication is security-critical—deviations introduce vulnerabilities that compromise user data and system integrity.
 
 The Insites User Module provides pre-built authentication infrastructure including:
 - User registration with bcrypt password hashing
@@ -472,7 +472,7 @@ The User Module provides a helper for the full user profile:
 insites-cli deploy staging
 
 # Watch logs for errors
-insites-cli logs staging
+insites-cli logsv2 staging
 
 # Open GUI to inspect users
 insites-cli gui serve staging
@@ -486,7 +486,7 @@ insites-cli gui serve staging
 ### 7.1 Plan and Write Tests
 
 Plan and Write all necessary unit tests to comprehensively check authorization.
-Use `pos-unit-tests` skill for that task.
+Use `insites-unit-tests` skill for that task.
 
 ### 7.2 Running Tests
 
@@ -498,7 +498,7 @@ insites-cli test run staging
 insites-cli test run staging test/user_test
 
 # Run with logs visible
-insites-cli logs staging &
+insites-cli logsv2 staging &
 insites-cli test run staging test/auth
 ```
 Verify that all tests passed.
@@ -638,7 +638,7 @@ GET  /passwords/reset  # Password reset form
 
 ## References
 
-- [platformOS User Authentication Guide](https://documentation.platformos.com/get-started/build-your-first-app/user-authentication)
+- [User Authentication Guide](https://documentation.platformos.com/get-started/build-your-first-app/user-authentication)
 - [User Module Documentation](https://documentation.platformos.com/developer-guide/modules/user-module)
-- [platformOS Security Best Practices](https://documentation.platformos.com/best-practices/security)
+- [Security Best Practices](https://documentation.platformos.com/best-practices/security)
 - [Session Management](https://documentation.platformos.com/api-reference/liquid/tags/sign_in)

@@ -1,5 +1,5 @@
 ---
-name: pos-auth-expansion
+name: insites-auth-expansion
 description: Expansion module for implementing roles, permissions, and authorization in Insites
 ---
 
@@ -303,7 +303,7 @@ slug: admin/users
 
 <h1>User Management</h1>
 
-<table class="pos-table">
+<table class="pos-table pos-table-content">
   <thead>
     <tr>
       <th>ID</th>
@@ -577,7 +577,7 @@ slug: admin/users/:id/edit
     {% endfor %}
   </fieldset>
 
-  <button type="submit" class="pos-button pos-button-primary">Save Roles</button>
+  <button type="submit" class="pos-button pos-button-primary">Save</button>
 </form>
 
 <a href="/admin/users">Back to Users</a>
@@ -764,7 +764,7 @@ insites-cli deploy staging
 insites-cli test run staging test/auth/authorization_test
 
 # Monitor logs
-insites-cli logs staging
+insites-cli logsv2 staging
 ```
 
 ---
@@ -929,7 +929,7 @@ endif
 
 - [Adding an Admin Page](https://documentation.platformos.com/tutorials/user-management/add-admin-page)
 - [Assigning Roles to Users](https://documentation.platformos.com/tutorials/user-management/assign-roles)
-- [Authorization with can_do](https://documentation.platformos.com/tutorials/user-management/authorization-can-do)
+- [Authorization](https://documentation.platformos.com/tutorials/user-management/authorization-can-do)
 - [Roles and Permissions](https://documentation.platformos.com/tutorials/user-management/roles-and-permissions)
 - [Understanding User Module Endpoints](https://documentation.platformos.com/tutorials/user-management/understand-endpoints)
 - [Display Admin Link Based on Permissions](https://documentation.platformos.com/tutorials/user-management/display-admin-permission)

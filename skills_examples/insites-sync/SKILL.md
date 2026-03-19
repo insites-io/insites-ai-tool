@@ -1,5 +1,5 @@
 ---
-name: pos-sync
+name: insites-sync
 description: Sync files to Insites staging instance with automatic validation
 ---
 
@@ -23,7 +23,7 @@ insites-cli sync -f PATH_TO_FILE staging
 1. Execute sync command
 2. Wait for confirmation output
 3. Check for any sync errors
-4. If file provided, run platformos-check on that file
+4. If file provided, run insites-cli audit on that file
 5. Report sync status
 
 ## Output Interpretation
@@ -46,7 +46,7 @@ Error: Invalid Liquid syntax in app/views/pages/broken.liquid
 
 After successful sync, automatically run:
 ```bash
-platformos-check
+insites-cli audit
 ```
 
 Report any linting errors found.

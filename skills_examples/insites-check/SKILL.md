@@ -1,15 +1,15 @@
 ---
-name: pos-check
-description: Run platformos-check linter with detailed error reporting
+name: insites-check
+description: Run insites-cli audit linter with detailed error reporting
 ---
 
 # Insites Check (Linter)
 
-Run the platformos-check linter to validate Liquid code.
+Run the `insites-cli audit` linter to validate Liquid code.
 
 ## Exclusion pattern check (mandatory)
 
-Application directory should contain `.platformos-check.yml` file with following instructions
+Application directory should contain `.insites-audit.yml` file with following instructions
 
 ```
 root: .
@@ -23,17 +23,17 @@ ignore:
 
 ### Check all files
 ```bash
-platformos-check
+insites-cli audit
 ```
 
 ### Check specific file
 ```bash
-platformos-check app/views/pages/articles/index.liquid
+insites-cli audit app/views/pages/articles/index.liquid
 ```
 
 ### Check specific directory
 ```bash
-platformos-check app/views/pages/
+insites-cli audit app/views/pages/
 ```
 
 ## Error Categories

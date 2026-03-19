@@ -1,5 +1,5 @@
 ---
-name: pos-logs
+name: insites-logs
 description: Fetch and analyze Insites logs for errors and debugging
 ---
 
@@ -11,12 +11,12 @@ Fetch and analyze logs from Insites instance.
 
 ### Stream live logs
 ```bash
-insites-cli logs staging
+insites-cli logsv2 staging
 ```
 
 ### Stream with filter
 ```bash
-insites-cli logs staging --filter error
+insites-cli logsv2 staging --filter error
 ```
 
 ## Log Levels

@@ -1,6 +1,6 @@
 ---
-name: pos-unit-tests
-description: Planning, writing, running, and fixing Insites unit tests using pos-module-tests
+name: insites-unit-tests
+description: Planning, writing, running, and fixing Insites unit tests using the testing framework
 ---
 
 ## Overview
@@ -692,7 +692,7 @@ GET /_tests/run_async
 This initiates background execution. Monitor via logs:
 
 ```bash
-insites-cli logs staging
+insites-cli logsv2 staging
 ```
 
 ### 3.6 Real-Time Development
@@ -704,7 +704,7 @@ insites-cli logs staging
 insites-cli sync staging
 
 # Terminal 2: Watch logs
-insites-cli logs staging
+insites-cli logsv2 staging
 
 # Terminal 3: Run tests as needed
 insites-cli test run staging test/your_test
@@ -852,7 +852,7 @@ function contract = 'modules/tests/assertions/equal',
 
 ```bash
 # Watch logs while running tests
-insites-cli logs staging
+insites-cli logsv2 staging
 
 # In another terminal
 insites-cli test run staging test/failing_test
@@ -907,7 +907,7 @@ insites-cli deploy staging              # Deploy before testing
 insites-cli test run staging            # Run all tests
 insites-cli test run staging test/name  # Run specific test
 insites-cli sync staging                # Real-time sync
-insites-cli logs staging                # View logs
+insites-cli logsv2 staging                # View logs
 ```
 
 ### Browser Endpoints
@@ -962,7 +962,7 @@ function contract = 'modules/tests/helpers/register_error',
 
 ## Related Skills
 
-- `platformos-deployment`
+- `insites-deployment`
 - `liquid-templating`
 - `graphql-queries`
 - `ci-cd-pipelines`
@@ -971,6 +971,6 @@ function contract = 'modules/tests/helpers/register_error',
 
 ## References
 
-- [platformOS Tests Module Repository](https://github.com/Platform-OS/pos-module-tests)
-- [platformOS Documentation](https://documentation.platformos.com/)
+- [Tests Module Repository](https://github.com/Platform-OS/pos-module-tests)
+- [Insites Documentation](https://documentation.platformos.com/)
 - [insites-cli Documentation](https://documentation.platformos.com/developer-guide/insites-cli/insites-cli)
