@@ -107,12 +107,13 @@ Show different messages based on user attributes:
 Combine flash messages with deep linking:
 
 ```liquid
+{% assign deep_link = '/items/' | append: item.id | append: '#details' %}
+{% parse_json flash_data %}
+  { "notice": "item.saved", "from": {{ deep_link | json }} }
+{% endparse_json %}
 {% liquid
-  assign deep_link = '/items/' | append: item.id | append: '#details'
-  parse_json flash_data
-    { "notice": "item.saved", "from": {{ deep_link | json }} }
-  endparse_json
-  session sflash = flash_data
+  assign flash_json = flash_data | json
+  session sflash = flash_json
   redirect_to deep_link
   break
 %}
@@ -156,12 +157,13 @@ Log flash messages for analytics:
 Display detailed error information in flash:
 
 ```liquid
+{% assign error_list = form.errors | map: 'message' | join: ', ' %}
+{% parse_json flash_data %}
+  { "alert": "form.validation_error", "error_details": {{ error_list | json }}, "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  assign error_list = form.errors | map: 'message' | join: ', '
-  parse_json flash_data
-    { "alert": "form.validation_error", "error_details": {{ error_list | json }}, "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash_data
+  assign flash_json = flash_data | json
+  session sflash = flash_json
   redirect_to context.location.pathname
   break
 %}

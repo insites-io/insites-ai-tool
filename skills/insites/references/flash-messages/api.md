@@ -11,11 +11,12 @@ Insites provides flash messages using the built-in `session` tag and `context.se
 Set flash message and redirect:
 
 ```liquid
+{% parse_json flash %}
+  { "notice": "user.profile_updated", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "user.profile_updated", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/dashboard'
   break
 %}
@@ -41,11 +42,12 @@ The flash JSON object supports these properties:
 ### Set Flash Message Only (no redirect)
 
 ```liquid
+{% parse_json flash %}
+  { "notice": "changes_saved", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "changes_saved", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
 %}
 ```
 
@@ -145,11 +147,12 @@ Flash messages follow this structure in session:
 Set multiple flash messages in redirect:
 
 ```liquid
+{% parse_json flash %}
+  { "notice": "partial_save", "warning": "some_fields_required", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "partial_save", "warning": "some_fields_required", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/form'
   break
 %}

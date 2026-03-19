@@ -123,13 +123,7 @@ For more granular checks using a permissions map:
 
 ```liquid
 {% liquid
-  parse_json permissions
-    {
-      "admin": ["products.create", "products.update", "products.delete"],
-      "editor": ["products.create", "products.update"],
-      "superadmin": []
-    }
-  endparse_json
+  assign permissions = '{"admin": ["products.create", "products.update", "products.delete"], "editor": ["products.create", "products.update"], "superadmin": []}' | parse_json
   assign can_create = false
   for role in profile.roles
     if role == 'superadmin'

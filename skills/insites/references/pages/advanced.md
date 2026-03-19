@@ -263,10 +263,13 @@ authorization_policies:
     break
   endunless
   graphql _ = 'background/trigger_export', user_id: profile.id
-  parse_json flash
-    { "notice": "Export started. You will receive an email when complete.", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+%}
+{% parse_json flash %}
+  { "notice": "Export started. You will receive an email when complete.", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% liquid
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/admin/exports'
   break
 %}

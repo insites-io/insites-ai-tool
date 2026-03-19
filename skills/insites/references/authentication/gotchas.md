@@ -41,13 +41,7 @@ Common errors and platform constraints when working with authentication and auth
 {% comment %} In permissions.liquid: "editor": ["article.create"] {% endcomment %}
 {% comment %} In page -- must match exactly: {% endcomment %}
 {% liquid
-  parse_json permissions
-    {
-      "admin": ["article.create", "article.update", "article.delete"],
-      "editor": ["article.create"],
-      "superadmin": []
-    }
-  endparse_json
+  assign permissions = '{"admin": ["article.create", "article.update", "article.delete"], "editor": ["article.create"], "superadmin": []}' | parse_json
   assign can = false
   for role in profile.roles
     if permissions[role] contains 'article.create'

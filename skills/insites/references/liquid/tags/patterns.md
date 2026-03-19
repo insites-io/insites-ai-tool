@@ -37,9 +37,7 @@ Use `function` for partials that compute and return data. Use `render` for parti
 
 ```liquid
 {% liquid
-  parse_json order_data
-    { "table": "orders", "properties": [{ "name": "status", "value": "pending" }] }
-  endparse_json
+  assign order_data = '{ "table": "orders", "properties": [{ "name": "status", "value": "pending" }] }' | parse_json
   graphql result = 'records/create', record: order_data
   return result
 %}
@@ -132,9 +130,7 @@ Wrap external calls and risky operations in try/catch.
     graphql result = 'integrations/stripe/charge', amount: total, token: token
   catch error
     log error, type: 'error'
-    parse_json result
-      { "errors": [{ "message": "Payment processing failed" }] }
-    endparse_json
+    assign result = '{ "errors": [{ "message": "Payment processing failed" }] }' | parse_json
   endtry
 %}
 ```
@@ -144,16 +140,16 @@ Wrap external calls and risky operations in try/catch.
 Use `parse_json` with Liquid interpolation to build dynamic hashes.
 
 ```liquid
+{% parse_json filters %}
+  {
+    "table": { "value": "products" },
+    "properties": [
+      { "name": "status", "value": "active" },
+      { "name": "category", "value": {{ category | json }} }
+    ]
+  }
+{% endparse_json %}
 {% liquid
-  parse_json filters
-    {
-      "table": { "value": "products" },
-      "properties": [
-        { "name": "status", "value": "active" },
-        { "name": "category", "value": {{ category | json }} }
-      ]
-    }
-  endparse_json
   graphql products = 'records/search', filter: filters, per_page: 20
 %}
 ```
@@ -257,9 +253,7 @@ Build and modify hashes dynamically.
 
 ```liquid
 {% liquid
-  parse_json defaults
-    { "per_page": 20, "sort": "created_at", "order": "desc" }
-  endparse_json
+  assign defaults = '{ "per_page": 20, "sort": "created_at", "order": "desc" }' | parse_json
   hash_assign defaults["per_page"] = context.params.per_page | default: 20 | to_positive_integer: 20
   hash_assign defaults["sort"] = context.params.sort | default: 'created_at'
   graphql results = 'records/search', options: defaults

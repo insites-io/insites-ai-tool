@@ -65,11 +65,12 @@ Send different emails based on user context:
 Send flash message while redirecting:
 
 ```liquid
+{% parse_json flash %}
+  { "notice": "user.welcome_sent", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "user.welcome_sent", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/dashboard'
   break
 %}

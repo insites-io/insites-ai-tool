@@ -20,11 +20,12 @@ Add before `</body>` in your layout:
 
 ### Set flash and redirect
 ```liquid
+{% parse_json flash %}
+  { "notice": "app.products.created", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "app.products.created", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/products'
   break
 %}
@@ -32,11 +33,12 @@ Add before `</body>` in your layout:
 
 ### Set flash with alert and redirect
 ```liquid
+{% parse_json flash %}
+  { "alert": "app.products.error", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "alert": "app.products.error", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/products'
   break
 %}

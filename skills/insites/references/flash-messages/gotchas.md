@@ -86,10 +86,9 @@ Localization keys use dot notation:
 ```liquid
 {% comment %} Correct {% endcomment %}
 {% liquid
-  parse_json flash
-    { "notice": "user.profile_updated", "from": "/dashboard" }
-  endparse_json
-  session sflash = flash
+  assign flash = '{"notice": "user.profile_updated", "from": "/dashboard"}' | parse_json
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/dashboard'
   break
 %}
@@ -106,11 +105,12 @@ Infinite redirect occurs if redirect URL points back to itself:
 
 ```liquid
 {% comment %} WRONG: Creates redirect loop {% endcomment %}
+{% parse_json flash %}
+  { "notice": "saved", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "saved", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to context.location.pathname
   break
 %}
@@ -121,10 +121,9 @@ Always redirect to a different URL:
 ```liquid
 {% comment %} CORRECT {% endcomment %}
 {% liquid
-  parse_json flash
-    { "notice": "saved", "from": "/dashboard" }
-  endparse_json
-  session sflash = flash
+  assign flash = '{"notice": "saved", "from": "/dashboard"}' | parse_json
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/dashboard'
   break
 %}
@@ -144,10 +143,9 @@ Different types work together in the same flash object:
 
 ```liquid
 {% liquid
-  parse_json flash
-    { "notice": "saved", "warning": "some_fields_empty", "from": "/form" }
-  endparse_json
-  session sflash = flash
+  assign flash = '{"notice": "saved", "warning": "some_fields_empty", "from": "/form"}' | parse_json
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/form'
   break
 %}
@@ -164,10 +162,9 @@ Never put user-provided content directly in flash messages. Always use localizat
 ```liquid
 {% comment %} SAFE: Use localization keys for user-facing messages {% endcomment %}
 {% liquid
-  parse_json flash
-    { "notice": "item.created", "from": "/items" }
-  endparse_json
-  session sflash = flash
+  assign flash = '{"notice": "item.created", "from": "/items"}' | parse_json
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/items'
   break
 %}

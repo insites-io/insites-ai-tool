@@ -44,21 +44,24 @@ method: post
 ---
 {% liquid
   graphql user = 'users/authenticate', email: context.params.email, password: context.params.password
-
+%}
+{% parse_json alert_flash %}
+  { "alert": "app.sessions.invalid_credentials", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% parse_json notice_flash %}
+  { "notice": "app.sessions.signed_in", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% liquid
   if user.user == blank
-    parse_json flash
-      { "alert": "app.sessions.invalid_credentials", "from": {{ context.location.pathname | json }} }
-    endparse_json
-    session sflash = flash
+    assign flash_json = alert_flash | json
+    session sflash = flash_json
     render 'sessions/form'
     break
   endif
 
   sign_in user_id: user.user.id, timeout_in_minutes: 1440
-  parse_json flash
-    { "notice": "app.sessions.signed_in", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = notice_flash | json
+  session sflash = flash_json
   redirect_to '/'
 %}
 ```
@@ -70,12 +73,13 @@ method: post
 slug: sessions
 method: delete
 ---
+{% parse_json flash %}
+  { "notice": "app.sessions.signed_out", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
   sign_out
-  parse_json flash
-    { "notice": "app.sessions.signed_out", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/'
 %}
 ```
@@ -107,10 +111,13 @@ method: post
   endif
 
   sign_in user_id: result.id, timeout_in_minutes: 1440
-  parse_json flash
-    { "notice": "app.registrations.welcome", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+%}
+{% parse_json flash %}
+  { "notice": "app.registrations.welcome", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% liquid
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/'
 %}
 ```
@@ -326,13 +333,7 @@ Check multiple permissions using the permissions map and pass results to a parti
     endfor
 
     unless can_create
-      parse_json permissions
-        {
-          "admin": ["products.create", "products.update", "products.delete", "products.export"],
-          "editor": ["products.create", "products.update"],
-          "superadmin": []
-        }
-      endparse_json
+      assign permissions = '{"admin": ["products.create", "products.update", "products.delete", "products.export"], "editor": ["products.create", "products.update"], "superadmin": []}' | parse_json
       for role in profile.roles
         if permissions[role] contains 'products.create'
           assign can_create = true

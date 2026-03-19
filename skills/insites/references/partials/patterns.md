@@ -43,9 +43,11 @@ See [Commands](../commands/README.md) for the full build/check/execute pattern.
 {% comment %} app/views/partials/lib/commands/products/create.liquid {% endcomment %}
 {% liquid
   comment Build: parse_json IS the build step
-  parse_json object
-    { "title": {{ title | json }}, "price": {{ price | json }} }
-  endparse_json
+%}
+{% parse_json object %}
+  { "title": {{ title | json }}, "price": {{ price | json }} }
+{% endparse_json %}
+{% liquid
   hash_assign object['valid'] = true
   hash_assign object['errors'] = '{}' | parse_json
 

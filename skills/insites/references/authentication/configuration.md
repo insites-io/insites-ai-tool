@@ -13,31 +13,29 @@ Define the permissions map inline using `parse_json` wherever you need to check 
 ### Permission map format
 
 ```liquid
-{% liquid
-  parse_json permissions
-    {
-      "anonymous": ["sessions.create", "users.register"],
-      "authenticated": ["sessions.destroy"],
-      "admin": [
-        "admin_pages.view",
-        "admin.users.manage",
-        "products.create",
-        "products.update",
-        "products.delete"
-      ],
-      "editor": [
-        "article.create",
-        "article.update",
-        "article.delete",
-        "article.view"
-      ],
-      "viewer": [
-        "article.view"
-      ],
-      "superadmin": []
-    }
-  endparse_json
-%}
+{% parse_json permissions %}
+  {
+    "anonymous": ["sessions.create", "users.register"],
+    "authenticated": ["sessions.destroy"],
+    "admin": [
+      "admin_pages.view",
+      "admin.users.manage",
+      "products.create",
+      "products.update",
+      "products.delete"
+    ],
+    "editor": [
+      "article.create",
+      "article.update",
+      "article.delete",
+      "article.view"
+    ],
+    "viewer": [
+      "article.view"
+    ],
+    "superadmin": []
+  }
+{% endparse_json %}
 ```
 
 For reuse, place the permissions map in a dedicated partial that returns it via `{% return permissions %}`.

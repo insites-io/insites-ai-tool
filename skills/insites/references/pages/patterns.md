@@ -88,10 +88,13 @@ authorization_policies:
     render 'products/new', errors: result.errors, params: context.params
     break
   endif
-  parse_json flash
-    { "notice": "Product created", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+%}
+{% parse_json flash %}
+  { "notice": "Product created", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% liquid
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/products'
   break
 %}
@@ -123,10 +126,13 @@ authorization_policies:
     render 'products/edit', errors: result.errors, params: context.params, id: context.params.id
     break
   endif
-  parse_json flash
-    { "notice": "Product updated", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+%}
+{% parse_json flash %}
+  { "notice": "Product updated", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% liquid
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/products/' | append: context.params.id
   break
 %}
@@ -154,10 +160,9 @@ authorization_policies:
     break
   endunless
   graphql _ = 'products/delete', id: context.params.id
-  parse_json flash
-    { "notice": "Product deleted", "from": "/products" }
-  endparse_json
-  session sflash = flash
+  assign flash = '{"notice": "Product deleted", "from": "/products"}' | parse_json
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/products'
   break
 %}
@@ -198,11 +203,12 @@ For `.json.liquid` files the content type is set automatically.
 Set a flash message before redirecting, then display it via the layout toast system.
 
 ```liquid
+{% parse_json flash %}
+  { "notice": "Operation successful", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
-  parse_json flash
-    { "notice": "Operation successful", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/products'
   break
 %}

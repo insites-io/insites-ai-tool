@@ -16,13 +16,7 @@ The default permission system uses a flat role-to-actions mapping. For more comp
   endif
 
   comment Check if user has the required role/permission
-  parse_json permissions
-    {
-      "admin": ["products.update", "products.create", "products.delete"],
-      "editor": ["products.update"],
-      "superadmin": []
-    }
-  endparse_json
+  assign permissions = '{"admin": ["products.update", "products.create", "products.delete"], "editor": ["products.update"], "superadmin": []}' | parse_json
   assign has_permission = false
   for role in requester.roles
     if role == 'superadmin'
@@ -77,13 +71,7 @@ Usage:
   endfor
 
   unless has_permission
-    parse_json permissions
-      {
-        "admin": ["products.update", "products.create", "products.delete"],
-        "editor": ["products.update"],
-        "superadmin": []
-      }
-    endparse_json
+    assign permissions = '{"admin": ["products.update", "products.create", "products.delete"], "editor": ["products.update"], "superadmin": []}' | parse_json
     for role in requester.roles
       if permissions[role] contains do
         assign has_permission = true
@@ -147,13 +135,7 @@ This iterates all of the user's roles and checks each against the permissions ma
     return false
   endif
 
-  parse_json permissions
-    {
-      "admin": ["products.create", "products.update", "products.delete"],
-      "editor": ["products.create", "products.update"],
-      "superadmin": []
-    }
-  endparse_json
+  assign permissions = '{"admin": ["products.create", "products.update", "products.delete"], "editor": ["products.create", "products.update"], "superadmin": []}' | parse_json
 
   for role in requester.roles
     if role == 'superadmin'
@@ -185,14 +167,18 @@ When using an external identity provider (Google, GitHub, etc.), the flow is:
 ---
 slug: auth/callback
 ---
+{% parse_json alert_flash %}
+  { "alert": "app.auth.oauth_failed", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% parse_json notice_flash %}
+  { "notice": "app.auth.welcome", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
   function result = 'lib/commands/auth/exchange_code', code: context.params.code
 
   if result.error
-    parse_json flash
-      { "alert": "app.auth.oauth_failed", "from": {{ context.location.pathname | json }} }
-    endparse_json
-    session sflash = flash
+    assign flash_json = alert_flash | json
+    session sflash = flash_json
     redirect_to '/login'
     break
   endif
@@ -206,10 +192,8 @@ slug: auth/callback
   endif
 
   sign_in user_id: user.id, timeout_in_minutes: 1440
-  parse_json flash
-    { "notice": "app.auth.welcome", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = notice_flash | json
+  session sflash = flash_json
   redirect_to '/'
 %}
 ```
@@ -323,15 +307,19 @@ Insites does not have built-in rate limiting for login. Implement it using a rec
 
 ```liquid
 {% comment %} In login handler, before authenticating {% endcomment %}
+{% parse_json too_many_flash %}
+  { "alert": "app.auth.too_many_attempts", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% parse_json invalid_flash %}
+  { "alert": "app.sessions.invalid_credentials", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
   graphql attempts = 'auth/get_attempts', email: context.params.email
   assign count = attempts.records.results.first.properties.count | default: 0 | plus: 0
 
   if count >= 5
-    parse_json flash
-      { "alert": "app.auth.too_many_attempts", "from": {{ context.location.pathname | json }} }
-    endparse_json
-    session sflash = flash
+    assign flash_json = too_many_flash | json
+    session sflash = flash_json
     render 'sessions/form'
     break
   endif
@@ -340,10 +328,8 @@ Insites does not have built-in rate limiting for login. Implement it using a rec
 
   if user.user == blank
     graphql _ = 'auth/increment_attempts', email: context.params.email
-    parse_json flash
-      { "alert": "app.sessions.invalid_credentials", "from": {{ context.location.pathname | json }} }
-    endparse_json
-    session sflash = flash
+    assign flash_json = invalid_flash | json
+    session sflash = flash_json
     render 'sessions/form'
     break
   endif

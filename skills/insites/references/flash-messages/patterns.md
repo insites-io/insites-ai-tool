@@ -9,20 +9,22 @@ Common patterns for implementing flash messages in Insites applications.
 After successful form submission, redirect with confirmation:
 
 ```liquid
+{% parse_json success_flash %}
+  { "notice": "user.created_successfully", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
+{% parse_json error_flash %}
+  { "alert": "form.validation_failed", "from": {{ context.location.pathname | json }} }
+{% endparse_json %}
 {% liquid
   function result = 'lib/commands/users/create', params: context.params
   if result.errors == blank
-    parse_json flash
-      { "notice": "user.created_successfully", "from": {{ context.location.pathname | json }} }
-    endparse_json
-    session sflash = flash
+    assign flash_json = success_flash | json
+    session sflash = flash_json
     redirect_to '/users'
     break
   endif
-  parse_json flash
-    { "alert": "form.validation_failed", "from": {{ context.location.pathname | json }} }
-  endparse_json
-  session sflash = flash
+  assign flash_json = error_flash | json
+  session sflash = flash_json
 %}
 ```
 
@@ -34,17 +36,15 @@ Show different messages for different outcomes:
 {% liquid
   if action == 'delete'
     if deletion_successful
-      parse_json flash
-        { "notice": "item.deleted", "from": "/items" }
-      endparse_json
-      session sflash = flash
+      assign flash = '{"notice": "item.deleted", "from": "/items"}' | parse_json
+      assign flash_json = flash | json
+      session sflash = flash_json
       redirect_to '/items'
       break
     else
-      parse_json flash
-        { "alert": "item.deletion_failed", "from": "/items" }
-      endparse_json
-      session sflash = flash
+      assign flash = '{"alert": "item.deletion_failed", "from": "/items"}' | parse_json
+      assign flash_json = flash | json
+      session sflash = flash_json
       redirect_to '/items'
       break
     endif
@@ -60,17 +60,15 @@ Warn users during multi-step processes:
 {% liquid
   if current_step == 2
     if incomplete_required_fields.size > 0
-      parse_json flash
-        { "warning": "form.step_2_incomplete_fields", "from": "/form/step-2" }
-      endparse_json
-      session sflash = flash
+      assign flash = '{"warning": "form.step_2_incomplete_fields", "from": "/form/step-2"}' | parse_json
+      assign flash_json = flash | json
+      session sflash = flash_json
       redirect_to '/form/step-2'
       break
     else
-      parse_json flash
-        { "notice": "form.step_2_complete", "from": "/form/step-3" }
-      endparse_json
-      session sflash = flash
+      assign flash = '{"notice": "form.step_2_complete", "from": "/form/step-3"}' | parse_json
+      assign flash_json = flash | json
+      session sflash = flash_json
       redirect_to '/form/step-3'
       break
     endif
@@ -198,10 +196,9 @@ Show notification with count:
 
 ```liquid
 {% liquid
-  parse_json flash
-    { "notice": "items.bulk_imported", "from": "/dashboard" }
-  endparse_json
-  session sflash = flash
+  assign flash = '{"notice": "items.bulk_imported", "from": "/dashboard"}' | parse_json
+  assign flash_json = flash | json
+  session sflash = flash_json
   redirect_to '/dashboard'
   break
 %}
